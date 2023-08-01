@@ -10,11 +10,14 @@ class MainApplication : Application() {
         MobileCore.setApplication(this)
         MobileCore.setLogLevel(LoggingMode.DEBUG)
         try {
-            AppsflyerAdobeExtension.Companion.registerExtension()
-            MobileCore.configureWithAppID("cc3f5fb64390/1e339b77b5d2/launch-29205c76e794-development")
+            MobileCore.configureWithAppID("cc3f5fb64390/dc8e2c465f6b/launch-c0c30f37db8f-development")
 
+            val extensions = listOf(Analytics.EXTENSION, Identity.EXTENSION, AppsflyerAdobeExtension.EXTENSION )
+            MobileCore.registerExtensions(extensions) {
+                Log.d(AppsflyerAdobeConstatns.AFEXTENSION, "AEP Mobile SDK is initialized")
+            }
 
-            AppsflyerAdobeExtension.Companion.registerAppsFlyerExtensionCallbacks(object :
+            AppsflyerAdobeExtensionImpl.Companion.registerAppsFlyerExtensionCallbacks(object :
                 AppsFlyerExtensionCallbacksListener {
                 override fun onCallbackReceived(callback: Map<String, String?>) {
                     Log.d("AppsFlyerCallbacks", callback.toString())

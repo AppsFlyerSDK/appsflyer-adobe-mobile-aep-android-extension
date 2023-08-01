@@ -6,8 +6,6 @@ import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import com.adobe.marketing.mobile.*
-import com.adobe.marketing.mobile.internal.eventhub.*
-import com.appsflyer.AFInAppEventParameterName
 import com.appsflyer.AppsFlyerConversionListener
 import com.appsflyer.AppsFlyerLib
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.AFEXTENSION
@@ -32,8 +30,13 @@ import java.util.*
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+object AppsflyerAdobeExtension {
 
-public class AppsflyerAdobeExtension (extensionApi: ExtensionApi) : Extension(extensionApi){
+    val EXTENSION: Class<out Extension> = AppsflyerAdobeExtensionImpl::class.java
+
+}
+
+public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extension(extensionApi){
     private val executorMutex = Any()
     private var sdkStared = false
     private var executor: ExecutorService? = null
@@ -73,7 +76,7 @@ public class AppsflyerAdobeExtension (extensionApi: ExtensionApi) : Extension(ex
                     }
                 }
 
-            MobileCore.registerExtensions(listOf(AppsflyerAdobeExtension::class.java), errorCallback)
+            MobileCore.registerExtensions(listOf(AppsflyerAdobeExtensionImpl::class.java), errorCallback)
                 Log.e(
                     AFEXTENSION,
                     "Registered."
