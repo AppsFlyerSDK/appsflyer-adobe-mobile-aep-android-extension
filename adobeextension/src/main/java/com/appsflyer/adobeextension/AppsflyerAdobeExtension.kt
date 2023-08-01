@@ -24,6 +24,7 @@ import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.PLUG_IN_VERSION
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.SDK_VERSION
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.TRACK_ATTR_DATA_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.WAIT_FOR_ECID
+import com.appsflyer.attribution.AppsFlyerRequestListener
 import com.appsflyer.internal.platform_extension.Plugin
 import com.appsflyer.internal.platform_extension.PluginInfo
 import java.lang.ref.WeakReference
@@ -130,7 +131,7 @@ public class AppsflyerAdobeExtension (extensionApi: ExtensionApi) : Extension(ex
 
         api.registerEventListener("com.adobe.eventType.hub", "com.adobe.eventSource.sharedState",this::reciveConfigurationRequestWithSharedState)
 
-        api.registerEventListener("com.adobe.eventType.hub", "com.adobe.eventSource.sharedState",this::reciveConfigurationRequest)
+        api.registerEventListener("com.adobe.eventType.generic.track", "com.adobe.eventSource.requestContent",this::reciveConfigurationRequest)
 
         af_application =
             MobileCore.getApplication()!!
@@ -147,7 +148,7 @@ public class AppsflyerAdobeExtension (extensionApi: ExtensionApi) : Extension(ex
         if (eventSetting.equals("none")) {
             return
         }
-        if (e.getType() == "com.adobe.eventtype.generic.track" && e.getSource() == "com.adobe.eventsource.requestcontent") {
+        if (e.getType().equals("com.adobe.eventType.generic.track") && e.getSource().equals("com.adobe.eventSource.requestContent")) {
 
             val eventData : Map<String,Any> = e.eventData
             val nestedData = eventData["contextdata"]
@@ -168,14 +169,24 @@ public class AppsflyerAdobeExtension (extensionApi: ExtensionApi) : Extension(ex
                     )
                     return
                 }
-
+                val appsFlyerLib = AppsFlyerLib.getInstance()
                 if (af_application != null) {
                     AppsFlyerLib.getInstance().logEvent(
                         af_application,
                         actionEventName.toString(),
                         getAppsFlyerEventMap(
                             nestedData
-                        )
+                        ),
+                        object : AppsFlyerRequestListener {
+                            override fun onSuccess() {
+                                Log.d(AFEXTENSION, "Event sent successfully")
+                            }
+                            override fun onError(errorCode: Int, errorDesc: String) {
+                                Log.d(AFEXTENSION, "Event failed to be sent:\n" +
+                                        "Error code: " + errorCode + "\n"
+                                        + "Error description: " + errorDesc)
+                            }
+                        }
                     )
                 } else {
                     Log.e(
@@ -192,13 +203,15 @@ public class AppsflyerAdobeExtension (extensionApi: ExtensionApi) : Extension(ex
         var map: MutableMap<String?, Any?> = HashMap()
         if (nestedData != null) {
             try {
-                map = nestedData as MutableMap<String?, Any?>
+                map = (nestedData as MutableMap<String?, Any?>).toMutableMap()
                 val revenue = map["revenue"] as String?
                 if (revenue != null) {
-                    map[AFInAppEventParameterName.REVENUE] = revenue
+                    map.put("af_revenue" , revenue)
+//                    map[AFInAppEventParameterName.REVENUE] = revenue
                     val currency = map["currency"] as String?
                     if (currency != null) {
-                        map[AFInAppEventParameterName.CURRENCY] = currency
+//                        map[AFInAppEventParameterName.CURRENCY] = currency
+                        map.put("af_currenc", currency)
                     }
                 }
             } catch (ex: Exception) {
