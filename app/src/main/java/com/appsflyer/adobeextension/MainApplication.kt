@@ -3,6 +3,9 @@ package com.appsflyer.adobeextension
 import android.app.Application
 import android.util.Log
 import com.adobe.marketing.mobile.*
+import com.appsflyer.AppsFlyerConversionListener
+import com.appsflyer.deeplink.DeepLinkListener
+import com.appsflyer.deeplink.DeepLinkResult
 
 class MainApplication : Application() {
     override fun onCreate() {
@@ -18,12 +21,34 @@ class MainApplication : Application() {
             }
 
             AppsflyerAdobeExtensionImpl.Companion.registerAppsFlyerExtensionCallbacks(object :
-                AppsFlyerExtensionCallbacksListener {
-                override fun onCallbackReceived(callback: Map<String, String?>) {
-                    Log.d("AppsFlyerCallbacks", callback.toString())
+                AppsFlyerConversionListener {
+                //                override fun onCallbackReceived(callback: Map<String, String?>) {
+//                    Log.d("AppsFlyerCallbacks", callback.toString())
+//                }
+//
+//                override fun onCallbackError(errorMessage: String) {}
+                override fun onConversionDataSuccess(p0: MutableMap<String, Any>?) {
+                    Log.d("AppsFlyerCallbacks", p0.toString())
                 }
 
-                override fun onCallbackError(errorMessage: String) {}
+                override fun onConversionDataFail(p0: String?) {
+                    Log.d("AppsFlyerCallbacks", p0?: " error onConversionDataFail")
+                }
+
+                override fun onAppOpenAttribution(p0: MutableMap<String, String>?) {
+                    Log.d("AppsFlyerCallbacks", p0.toString())
+                }
+
+                override fun onAttributionFailure(p0: String?) {
+                    Log.d("AppsFlyerCallbacks", p0?:" error onAttributionFailure")
+                }
+            })
+
+            AppsflyerAdobeExtensionImpl.Companion.registerAppsFlyerExtensionDeepLinkListener(object :
+                DeepLinkListener {
+                override fun onDeepLinking(p0: DeepLinkResult) {
+                    Log.d("AppsFlyerDeepLink", p0.toString())
+                }
             })
 
         } catch (ex: Exception) {

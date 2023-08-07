@@ -23,6 +23,7 @@ import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.TRACK_ATTR_DATA_CONF
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.WAIT_FOR_ECID
 import com.appsflyer.attribution.AppsFlyerRequestListener
 import com.appsflyer.deeplink.DeepLink
+import com.appsflyer.deeplink.DeepLinkListener
 import com.appsflyer.deeplink.DeepLinkResult
 import com.appsflyer.internal.platform_extension.Plugin
 import com.appsflyer.internal.platform_extension.PluginInfo
@@ -66,7 +67,8 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
         private var af_activity: WeakReference<Activity>? = null
         private var didReceiveConfigurations = false
         private var trackAttributionData = false
-        private var afCallbackListener: AppsFlyerExtensionCallbacksListener? = null
+        private var afCallbackListener: AppsFlyerConversionListener? = null
+        private var afCallbackDeepLinkListener: DeepLinkListener? = null
         var conversionData: Map<String, Any>? = null
             private set
         var gcd: Map<String, Any>? = null
@@ -121,9 +123,17 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
             }
         }
 
-        fun registerAppsFlyerExtensionCallbacks(callbacksListener: AppsFlyerExtensionCallbacksListener){
+        fun registerAppsFlyerExtensionCallbacks(callbacksListener: AppsFlyerConversionListener){
             if (callbacksListener != null){
                 afCallbackListener = callbacksListener
+            } else {
+                Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
+            }
+        }
+
+        fun registerAppsFlyerExtensionDeepLinkListener(deepLinkListener: DeepLinkListener){
+            if (deepLinkListener != null){
+                afCallbackDeepLinkListener = deepLinkListener
             } else {
                 Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
             }
@@ -296,6 +306,7 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
     }
 
     private fun handleDeepLink(deepLinkResult: DeepLinkResult) {
+        afCallbackDeepLinkListener?.onDeepLinking(deepLinkResult)
         when (deepLinkResult.status) {
             DeepLinkResult.Status.FOUND -> {
                 Log.d(AFEXTENSION, "Deep link found")
@@ -452,19 +463,23 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
                         Log.d(AFEXTENSION, "Skipping attribution data reporting, not first launch")
                     }
                 }
-                afCallbackListener?.onCallbackReceived(
-                    convertConversionData(
-                        conversionData.toMap()
-                    )
-                )
+                afCallbackListener?.onConversionDataSuccess(convertConversionData(
+                    conversionData.toMap()
+                ))
+//                afCallbackListener?.onCallbackReceived(
+//                    convertConversionData(
+//                        conversionData.toMap()
+//                    )
+//                )
                 gcd = conversionData
             }
 
             override fun onConversionDataFail(errorMessage: String) {
                 afLogger("called onConversionDataFail")
-                afCallbackListener?.onCallbackError(
-                    errorMessage
-                )
+                afCallbackListener?.onConversionDataFail(errorMessage)
+//                afCallbackListener?.onCallbackError(
+//                    errorMessage
+//                )
             }
 
             override fun onAppOpenAttribution(deepLinkData: MutableMap<String, String>) {
@@ -477,16 +492,18 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
                     APPSFLYER_ENGAGMENT_DATA,
                     setKeyPrefixOnAppOpenAttribution(deepLinkData)
                 )
-                afCallbackListener?.onCallbackReceived(
-                    deepLinkData
-                )
+//                afCallbackListener?.onCallbackReceived(
+//                    deepLinkData
+//                )
+                afCallbackListener?.onAppOpenAttribution(deepLinkData)
             }
 
             override fun onAttributionFailure(errorMessage: String) {
                 afLogger("called onAttributionFailure")
-                afCallbackListener?.onCallbackError(
-                    errorMessage
-                )
+//                afCallbackListener?.onCallbackError(
+//                    errorMessage
+//                )
+                afCallbackListener?.onAttributionFailure(errorMessage)
             }
         }
     }
