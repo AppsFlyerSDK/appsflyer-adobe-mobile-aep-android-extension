@@ -20,7 +20,7 @@ class MainApplication : Application() {
                 Log.d(AppsflyerAdobeConstatns.AFEXTENSION, "AEP Mobile SDK is initialized")
             }
 
-            AppsflyerAdobeExtensionImpl.Companion.registerAppsFlyerExtensionCallbacks(object :
+            AppsflyerAdobeExtension.registerConversionListener(object :
                 AppsFlyerConversionListener {
                 //                override fun onCallbackReceived(callback: Map<String, String?>) {
 //                    Log.d("AppsFlyerCallbacks", callback.toString())
@@ -44,7 +44,7 @@ class MainApplication : Application() {
                 }
             })
 
-            AppsflyerAdobeExtensionImpl.Companion.registerAppsFlyerExtensionDeepLinkListener(object :
+            AppsflyerAdobeExtension.registerDeepLinkListener(object :
                 DeepLinkListener {
                 override fun onDeepLinking(p0: DeepLinkResult) {
                     Log.d("AppsFlyerDeepLink", p0.toString())

@@ -2,7 +2,6 @@ package com.appsflyer.adobeextension
 
 import android.app.Activity
 import android.app.Application
-import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import com.adobe.marketing.mobile.*
@@ -21,206 +20,194 @@ import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.IS_FIRST_LAUNCH
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.PLUG_IN_VERSION
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.TRACK_ATTR_DATA_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.WAIT_FOR_ECID
+import com.appsflyer.adobeextension.AppsflyerAdobeExtensionImpl.Companion.afCallbackDeepLinkListener
+import com.appsflyer.adobeextension.AppsflyerAdobeExtensionImpl.Companion.afCallbackListener
+import com.appsflyer.adobeextension.AppsflyerAdobeExtensionImpl.Companion.subscribeForDeepLink
 import com.appsflyer.attribution.AppsFlyerRequestListener
 import com.appsflyer.deeplink.DeepLink
 import com.appsflyer.deeplink.DeepLinkListener
 import com.appsflyer.deeplink.DeepLinkResult
 import com.appsflyer.internal.platform_extension.Plugin
 import com.appsflyer.internal.platform_extension.PluginInfo
+import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
 object AppsflyerAdobeExtension {
-
     val EXTENSION: Class<out Extension> = AppsflyerAdobeExtensionImpl::class.java
 
+    fun registerConversionListener(callbacksListener: AppsFlyerConversionListener){
+        if (callbacksListener != null){
+            afCallbackListener = callbacksListener
+        } else {
+            Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
+        }
+    }
+
+    fun registerDeepLinkListener(deepLinkListener: DeepLinkListener){
+        if (deepLinkListener != null){
+            afCallbackDeepLinkListener = deepLinkListener
+            subscribeForDeepLink()
+        } else {
+            Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
+        }
+    }
 }
 
 public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extension(extensionApi){
     private val executorMutex = Any()
-    private var sdkStared = false
-    private var executor: ExecutorService? = null
-        private get() {
-            synchronized(executorMutex) {
-                if (field == null) {
-                    field = Executors.newSingleThreadExecutor()
-                }
-                return field
-            }
-        }
+    private var sdkStarted = false
+    private val executor : ExecutorService by lazy { Executors.newSingleThreadExecutor() }
     private var ecid: String? = null
-    private val TRACK_ALL_EVENTS = "all"
-    private val TRACK_ACTION_EVENTS = "actions"
-    private val TRACK_STATE_EVENTS = "states"
-    private val TRACK_NO_EVENTS = "none"
-    private val ACTION = "action"
-    private val STATE = "state"
 
     public override fun getName(): String {
-        return "com.appsflyer.adobeextension"
+        return APP_ID
     }
 
     companion object{
+        private const val APP_ID = "com.appsflyer.adobeextension"
+        private const val TRACK_ALL_EVENTS = "all"
+        private const val TRACK_ACTION_EVENTS = "actions"
+        private const val TRACK_STATE_EVENTS = "states"
+        private const val TRACK_NO_EVENTS = "none"
+        private const val ACTION = "action"
+        private const val STATE = "state"
+
+        internal var afCallbackListener: AppsFlyerConversionListener? = null
+        internal var afCallbackDeepLinkListener: DeepLinkListener? = null
         var eventSetting = ""
         private var af_application: Application? = null
         private var af_activity: WeakReference<Activity>? = null
         private var didReceiveConfigurations = false
         private var trackAttributionData = false
-        private var afCallbackListener: AppsFlyerConversionListener? = null
-        private var afCallbackDeepLinkListener: DeepLinkListener? = null
         var conversionData: Map<String, Any>? = null
             private set
         var gcd: Map<String, Any>? = null
-        fun registerExtension() {
-            val errorCallback: AdobeCallbackWithError<AdobeError> =
-                object : AdobeCallbackWithError<AdobeError> {
-                    override fun fail(p0: AdobeError?) {
-                        Log.e(AFEXTENSION, "error in Appsflyer AEP Extension resgistretion")
-                    }
 
-                    override fun call(p0: AdobeError?) {
-                        Log.e(AFEXTENSION, "registretion of Appsflyer AEP Extension success")
-                    }
+        private fun handleDeepLink(deepLinkResult: DeepLinkResult) {
+            afCallbackDeepLinkListener?.onDeepLinking(deepLinkResult)
+            when (deepLinkResult.status) {
+                DeepLinkResult.Status.FOUND -> {
+                    logAFExtension("Deep link found")
+
                 }
-
-            MobileCore.registerExtensions(listOf(AppsflyerAdobeExtensionImpl::class.java), errorCallback)
-                Log.e(
-                    AFEXTENSION,
-                    "Appsflyer AEP Extension is Registered."
-                )
-            }
-
-        fun registerCallbacks(){
-            val callbacks : Application.ActivityLifecycleCallbacks = object : Application.ActivityLifecycleCallbacks{
-                override fun onActivityCreated(activity: Activity, p1: Bundle?) {
-                    af_activity = WeakReference(activity)
+                DeepLinkResult.Status.NOT_FOUND -> {
+                    logErrorAFExtension("Deep link not found")
+                    return
                 }
-
-                override fun onActivityStarted(p0: Activity) {
-                }
-
-                override fun onActivityResumed(p0: Activity) {
-                }
-
-                override fun onActivityPaused(p0: Activity) {
-                }
-
-                override fun onActivityStopped(p0: Activity) {
-                }
-
-                override fun onActivitySaveInstanceState(p0: Activity, p1: Bundle) {
-                }
-
-                override fun onActivityDestroyed(p0: Activity) {
+                else -> {
+                    // dlStatus == DeepLinkResult.Status.ERROR
+                    val dlError = deepLinkResult.error
+                    logErrorAFExtension("There was an error getting Deep Link data: $dlError")
+                    return
                 }
             }
-            if (af_application != null) {
-                af_application!!.registerActivityLifecycleCallbacks(callbacks)
+            var deepLinkObj: DeepLink = deepLinkResult.deepLink
+            try {
+                logAFExtension("The DeepLink data is: $deepLinkObj")
+                MobileCore.trackAction(APPSFLYER_ENGAGMENT_DATA, jsonObjectToMap(deepLinkObj.clickEvent))
+            } catch (e: Exception) {
+                logErrorAFExtension("DeepLink data came back null")
+                return
             }
-            else{
-                Log.e(AFEXTENSION, "Null application context error - Use MobileCore.setApplication(this) in your app")
+
+            // An example for using is_deferred
+            if (deepLinkObj.isDeferred == true) {
+                logAFExtension("This is a deferred deep link")
+            } else {
+                logAFExtension("This is a direct deep link")
             }
         }
 
-        fun registerAppsFlyerExtensionCallbacks(callbacksListener: AppsFlyerConversionListener){
-            if (callbacksListener != null){
-                afCallbackListener = callbacksListener
-            } else {
-                Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
+        internal fun subscribeForDeepLink(){
+            if (afCallbackDeepLinkListener != null){
+                AppsFlyerLib.getInstance().subscribeForDeepLink(this::handleDeepLink)
             }
         }
 
-        fun registerAppsFlyerExtensionDeepLinkListener(deepLinkListener: DeepLinkListener){
-            if (deepLinkListener != null){
-                afCallbackDeepLinkListener = deepLinkListener
-            } else {
-                Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
+        private fun logAFExtension(message: String) {
+            Log.d(AFEXTENSION, message)
+        }
+
+        private fun logErrorAFExtension(errorMessage :String) {
+            Log.e(AFEXTENSION, errorMessage)
+        }
+
+        private fun jsonObjectToMap(jsonObject: JSONObject): Map<String, String> {
+            val map = mutableMapOf<String, String>()
+
+            val keys = jsonObject.keys()
+            while (keys.hasNext()) {
+                val key = keys.next()
+                val value = jsonObject[key]
+                map[key] = value.toString()
             }
+
+            return map
         }
     }
 
     init {
-        api.registerEventListener("com.adobe.eventType.hub", "com.adobe.eventSource.sharedState",this::reciveConfigurationRequestWithSharedState)
-        api.registerEventListener("com.adobe.eventType.generic.track", "com.adobe.eventSource.requestContent",this::reciveConfigurationRequest)
-        if (MobileCore.getApplication() != null){
-            af_application = MobileCore.getApplication()!!
-        }
-        else{
-            Log.e(AFEXTENSION, "Null application context error - Use MobileCore.setApplication(this) in your app")
-        }
+        api.registerEventListener(EventType.HUB, EventSource.SHARED_STATE, this::reciveConfigurationRequestWithSharedState)
+        api.registerEventListener(EventType.GENERIC_TRACK, EventSource.REQUEST_CONTENT, this::reciveConfigurationRequest)
+        MobileCore.getApplication()?.let {
+            af_application = it
+        } ?: logErrorAFExtension("Null application context error - Use MobileCore.setApplication(this) in your app")
 
-        registerCallbacks()
+//        registerCallbacks()
+        AcitivityLifeCycleWrapper(af_application,this::onActivityCreated)
+    }
+
+    private fun onActivityCreated(activity: Activity, p1: Bundle?) {
+        af_activity = WeakReference(activity)
     }
 
     private fun reciveConfigurationRequest(e : Event){
+        val trackActionEvent = eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_ACTION_EVENTS
+        val trackStateEvent = eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_STATE_EVENTS
 
-        val trackActionEvent = eventSetting.equals(TRACK_ALL_EVENTS) || eventSetting.equals(TRACK_ACTION_EVENTS)
-        val trackStateEvent = eventSetting.equals(TRACK_ALL_EVENTS) || eventSetting.equals(TRACK_STATE_EVENTS)
-
-
-        if (eventSetting.equals(TRACK_NO_EVENTS)) {
+        if (eventSetting == TRACK_NO_EVENTS) {
             return
         }
-        if (e.getType().equals("com.adobe.eventType.generic.track") && e.getSource().equals("com.adobe.eventSource.requestContent")) {
+        if (e.getType() == EventType.GENERIC_TRACK && e.getSource() == EventSource.REQUEST_CONTENT) {
             val eventData : Map<String,Any> = e.eventData
-            val nestedData = eventData["contextdata"]
-            val actionEventName = eventData[ACTION]
-            val stateEventName = eventData[STATE]
-            val is_action_event = actionEventName != null
-            val is_state_event = stateEventName != null
+            val nestedData = eventData["contextdata"] as Map<String, Any>?
+            val actionEventName = eventData[ACTION] as String?
+            val stateEventName = eventData[STATE] as String?
 
-            if (af_application!=null){
-                if (trackActionEvent && is_action_event) {
+            if (af_application !=  null){
+                var eventName: String = ""
+                if (trackActionEvent && actionEventName!= null) {
                     // Discard if event is "AppsFlyer Attribution Data" event.
-                    if (actionEventName != null) {
-                        if (actionEventName.equals(APPSFLYER_ATTRIBUTION_DATA) || actionEventName.equals(APPSFLYER_ENGAGMENT_DATA)) {
-                            Log.d(
-                                AFEXTENSION,
-                                "Discarding event binding for AppsFlyer Attribution Data event"
-                            )
-                            return
+                    if (actionEventName == APPSFLYER_ATTRIBUTION_DATA || actionEventName == APPSFLYER_ENGAGMENT_DATA) {
+                        logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
+                        return
+                    }
+                    eventName = actionEventName
+
+                } else if (trackStateEvent && stateEventName != null) {
+                    eventName = stateEventName
+                }
+                AppsFlyerLib.getInstance().logEvent(
+                    af_application!!,
+                    eventName,
+                    getAppsFlyerEventMap(
+                        nestedData
+                    ),
+                    object : AppsFlyerRequestListener {
+                        override fun onSuccess() {
+                            logAFExtension("Event sent successfully")
+                        }
+                        override fun onError(errorCode: Int, errorDesc: String) {
+                            logErrorAFExtension("Event failed to be sent:\n" +
+                                    "Error code: " + errorCode + "\n"
+                                    + "Error description: " + errorDesc)
                         }
                     }
-                    AppsFlyerLib.getInstance().logEvent(
-                        af_application!!,
-                        actionEventName.toString(),
-                        getAppsFlyerEventMap(
-                            nestedData
-                        ),
-                        object : AppsFlyerRequestListener {
-                            override fun onSuccess() {
-                                Log.d(AFEXTENSION, "Event sent successfully")
-                            }
-                            override fun onError(errorCode: Int, errorDesc: String) {
-                                Log.d(AFEXTENSION, "Event failed to be sent:\n" +
-                                        "Error code: " + errorCode + "\n"
-                                        + "Error description: " + errorDesc)
-                            }
-                        }
-                    )
-
-                } else if (trackStateEvent && is_state_event) {
-                    AppsFlyerLib.getInstance().logEvent(
-                        af_application!!,
-                        stateEventName.toString(),
-                        getAppsFlyerEventMap(
-                            nestedData
-                        ),
-                        object : AppsFlyerRequestListener {
-                            override fun onSuccess() {
-                                Log.d(AFEXTENSION, "Event sent successfully")
-                            }
-                            override fun onError(errorCode: Int, errorDesc: String) {
-                                Log.d(AFEXTENSION, "Event failed to be sent:\n" +
-                                        "Error code: " + errorCode + "\n"
-                                        + "Error description: " + errorDesc)
-                            }
-                        }
-                    )
-                }
+                )
             } else{
-                Log.e(AFEXTENSION, "Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
+                logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
             }
 
         }
@@ -231,34 +218,17 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
         val stateOwner : String = eventData.get("stateowner").toString()
         if (stateOwner.equals("com.adobe.module.configuration")){
             // This is a line needs to be chcked. See the change from the Deprectation.
-            val sharedStateResult : SharedStateResult? = super.getApi().getSharedState("com.adobe.module.configuration", e, false,SharedStateResolution.ANY)
-            val configurationSharedState : Map<String,Object> = sharedStateResult?.value as Map<String, Object>
+
+            val sharedStateResult : SharedStateResult? = api.getSharedState("com.adobe.module.configuration", e, false,SharedStateResolution.ANY)
+            val configurationSharedState : Map<String,Any> = sharedStateResult?.value as Map<String, Any>
             try{
-                if(configurationSharedState != null){
-                    if (!configurationSharedState.isEmpty() && configurationSharedState.get(DEV_KEY_CONFIG) != null) {
-                        val appsFlyerDevKey = configurationSharedState[DEV_KEY_CONFIG].toString()
-                        var inAppEventSetting: String = ""
-                        var isDebug = false
-                        var shouldTrackAttr = false
-                        var waitForECID = false
-
-                        if (configurationSharedState[IS_DEBUG_CONFIG] != null) {
-                            isDebug = configurationSharedState[IS_DEBUG_CONFIG] as Boolean
-                        }
-
-                        if (configurationSharedState[TRACK_ATTR_DATA_CONFIG] != null) {
-                            shouldTrackAttr =
-                                configurationSharedState[TRACK_ATTR_DATA_CONFIG] as Boolean
-                        }
-
-                        if (configurationSharedState[WAIT_FOR_ECID] != null) {
-                            waitForECID = configurationSharedState[WAIT_FOR_ECID] as Boolean
-                        }
-
-                        if (configurationSharedState[EVENT_SETTING_CONFIG] != null) {
-                            inAppEventSetting =
-                                configurationSharedState[EVENT_SETTING_CONFIG].toString()
-                        }
+                if(!configurationSharedState.isNullOrEmpty()){
+                    configurationSharedState[DEV_KEY_CONFIG]?.let { devKey ->
+                        val appsFlyerDevKey = devKey.toString()
+                        val isDebug = (configurationSharedState[IS_DEBUG_CONFIG] as Boolean?) ?: false
+                        val shouldTrackAttr = (configurationSharedState[TRACK_ATTR_DATA_CONFIG] as Boolean?) ?: false
+                        val waitForECID = (configurationSharedState[WAIT_FOR_ECID] as Boolean?) ?: false
+                        val inAppEventSetting = (configurationSharedState[EVENT_SETTING_CONFIG] as String?) ?: ""
 
                         this.handleConfigurationEvent(
                             appsFlyerDevKey,
@@ -267,83 +237,29 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
                             inAppEventSetting,
                             waitForECID
                         )
-                    } else {
-                        Log.e(
-                            AFEXTENSION,
-                            "Cannot initialize AppsFlyer tracking without a valid DevKey"
-                        )
                     }
                 } else {
-                    Log.e(
-                        AFEXTENSION,
-                        "Cannot initialize Appsflyer tracking: null configuration json"
-                    )
+                    logErrorAFExtension("Cannot initialize Appsflyer tracking: null configuration json")
                 }
             } catch (npx : NullPointerException) {
-                Log.e(AFEXTENSION, "Exception while casting devKey to String: $npx")
+                logErrorAFExtension("Exception while casting devKey to String: $npx")
             }
         }
     }
 
-    private fun getAppsFlyerEventMap(nestedData: Any?): Map<String?, Any?>? {
-        var map: MutableMap<String?, Any?> = HashMap()
-        if (nestedData != null) {
-            try {
-                map = (nestedData as MutableMap<String?, Any?>).toMutableMap()
-                val revenue = map["revenue"] as String?
-                if (revenue != null) {
-                    map.put(AFInAppEventParameterName.REVENUE , revenue)
-                    val currency = map["currency"] as String?
-                    if (currency != null) {
-                        map.put(AFInAppEventParameterName.CURRENCY, currency)
-                    }
-                }
-            } catch (ex: Exception) {
-                Log.e(AFEXTENSION, "Error casting contextdata: $ex")
+    private fun getAppsFlyerEventMap(nestedData: Map<String,Any>?): Map<String, Any> {
+        var map = nestedData?.toMutableMap() ?: mutableMapOf()
+        try {
+            (map["revenue"] as String?)?.let {
+                map.put(AFInAppEventParameterName.REVENUE, it)
             }
+            (map["currency"] as String?)?.let{
+                map.put(AFInAppEventParameterName.CURRENCY, it)
+            }
+        } catch (ex: Exception) {
+            logErrorAFExtension("Error casting contextdata: $ex")
         }
         return map
-    }
-
-    private fun handleDeepLink(deepLinkResult: DeepLinkResult) {
-        afCallbackDeepLinkListener?.onDeepLinking(deepLinkResult)
-        when (deepLinkResult.status) {
-            DeepLinkResult.Status.FOUND -> {
-                Log.d(AFEXTENSION, "Deep link found")
-            }
-            DeepLinkResult.Status.NOT_FOUND -> {
-                Log.d(AFEXTENSION, "Deep link not found")
-                return
-            }
-            else -> {
-                // dlStatus == DeepLinkResult.Status.ERROR
-                val dlError = deepLinkResult.error
-                Log.d(AFEXTENSION, "There was an error getting Deep Link data: $dlError")
-                return
-            }
-        }
-        var deepLinkObj: DeepLink = deepLinkResult.deepLink
-        try {
-            Log.d(AFEXTENSION, "The DeepLink data is: $deepLinkObj")
-        } catch (e: Exception) {
-            Log.d(AFEXTENSION, "DeepLink data came back null")
-            return
-        }
-
-        // An example for using is_deferred
-        if (deepLinkObj.isDeferred == true) {
-            Log.d(AFEXTENSION, "This is a deferred deep link")
-        } else {
-            Log.d(AFEXTENSION, "This is a direct deep link")
-        }
-
-        try {
-            val fruitName = deepLinkObj.deepLinkValue
-            Log.d(AFEXTENSION, "The DeepLink will route to: $fruitName")
-        } catch (e: Exception) {
-            Log.d(AFEXTENSION, "There's been an error: $e")
-            return
-        }
     }
 
     fun handleConfigurationEvent(
@@ -353,98 +269,76 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
         inAppEventSetting: String,
         waitForECID: Boolean
     ) {
-        synchronized(executorMutex) {
-            if (executor == null) {
-                executor = Executors.newSingleThreadExecutor()
-            }
-            executor!!.execute(Runnable {
-                if (af_application != null && !didReceiveConfigurations) {
-                    val additionalParams: MutableMap<String, String> = HashMap()
-                    additionalParams["build_number"] = PLUG_IN_VERSION
-                    val pluginInfo = PluginInfo(
-                        Plugin.ADOBE_MOBILE,
-                        PLUG_IN_VERSION, additionalParams
-                    )
-                    AppsFlyerLib.getInstance().setPluginInfo(pluginInfo)
-                    // Set Adobe ID as the AppsFlyer customerUserId as early as possible.
-                    AppsFlyerLib.getInstance().setDebugLog(appsFlyerIsDebug)
-                    AppsFlyerLib.getInstance().subscribeForDeepLink(this::handleDeepLink)
-                    AppsFlyerLib.getInstance().init(
-                        appsFlyerDevKey,
-                        getConversionListener(),
-                        af_application!!.applicationContext
-                    )
-                    // wait for Adobe ID to be sent with the install event
-                    // wait for Adobe ID to be sent with the install event
-                    if (waitForECID) {
-                        afLogger("waiting for Experience Cloud Id")
-                        AppsFlyerLib.getInstance().waitForCustomerUserId(true)
-                    }
-
-                    Identity.getExperienceCloudId( AdobeCallback {
-                        if (it != null) {
-                            ecid = it
-                        }
-                        val id = ecid ?: ""
-                        if (waitForECID && sdkStared) {
-                            val context: Context = if (af_activity != null && af_activity!!.get() != null ) {
-                                af_activity!!.get()!!
-                            } else {
-                                af_application!!.getApplicationContext()
-                            }
-                            AppsFlyerLib.getInstance().setCustomerIdAndLogSession(id, context)
-
-                        } else {
-                            AppsFlyerLib.getInstance().setCustomerUserId(id)
-                        }
-                    })
-                    startSDK()
-
-                    trackAttributionData = trackAttrData
-                    eventSetting = inAppEventSetting
-                    didReceiveConfigurations = true
-
-                } else if (af_application == null) {
-                    Log.e(AFEXTENSION, "Null application context error - Use MobileCore.setApplication(this) in your app")
+        executor.execute(Runnable {
+            if (af_application != null && !didReceiveConfigurations) {
+                val additionalParams: MutableMap<String, String> = HashMap()
+                val pluginInfo = PluginInfo(
+                    Plugin.ADOBE_MOBILE,
+                    PLUG_IN_VERSION, additionalParams
+                )
+                AppsFlyerLib.getInstance().setPluginInfo(pluginInfo)
+                AppsFlyerLib.getInstance().setDebugLog(appsFlyerIsDebug)
+                AppsFlyerLib.getInstance().init(
+                    appsFlyerDevKey,
+                    getConversionListener(),
+                    af_application!!.applicationContext
+                )
+                if (waitForECID) {
+                    logAFExtension("waiting for Experience Cloud Id")
+                    AppsFlyerLib.getInstance().waitForCustomerUserId(true)
                 }
-            })
-        }
-    }
 
-    private fun afLogger(msg: String) {
-        Log.d("AppsFlyer_adobe_ext", msg)
+                Identity.getExperienceCloudId( AdobeCallback {
+                    ecid = it
+                    val id = ecid.orEmpty()
+                    if (waitForECID && sdkStarted) {
+                        val context = af_activity?.get() ?: af_application!!
+                        AppsFlyerLib.getInstance().setCustomerIdAndLogSession(id, context)
+                    } else {
+                        AppsFlyerLib.getInstance().setCustomerUserId(id)
+                    }
+                })
+                startSDK()
+
+                trackAttributionData = trackAttrData
+                eventSetting = inAppEventSetting
+                didReceiveConfigurations = true
+
+            } else if (af_application == null) {
+                logErrorAFExtension("Null application context error - Use MobileCore.setApplication(this) in your app")
+            }
+        })
     }
 
     private fun startSDK() {
-        if (sdkStared) {
+        if (sdkStarted) {
             return
         }
-        if (af_activity != null && af_activity!!.get() != null) {
-            afLogger("start with Activity context")
-            AppsFlyerLib.getInstance().start(af_activity!!.get()!!)
-            sdkStared = true
-        } else if (af_application != null) {
-            afLogger("start with Application context")
-            AppsFlyerLib.getInstance()
-                .start(af_application!!.getApplicationContext())
-            sdkStared = true
-        } else {
-            afLogger("Null application context error - Use MobileCore.setApplication(this) in your app")
+        val (message,context) = if (af_activity?.get() != null) {
+                                    Pair ("start with Activity context", af_activity!!.get()!!)
+                                } else if (af_application != null) {
+                                    Pair("start with Application context", af_application!!.getApplicationContext())
+                                } else {
+                                    Pair("Null application context error - Use MobileCore.setApplication(this) in your app",null)
+                                }
+        if (context != null){
+            AppsFlyerLib.getInstance().start(context)
+            sdkStarted = true
         }
+        logAFExtension(message)
     }
 
 
     private fun getConversionListener(): AppsFlyerConversionListener {
         return object : AppsFlyerConversionListener {
             override fun onConversionDataSuccess(conversionData: MutableMap<String, Any>) {
-                afLogger("called onConversionDataSuccess")
+                logAFExtension("called onConversionDataSuccess")
                 conversionData[CALLBACK_TYPE] = "onConversionDataReceived"
                 if (trackAttributionData) {
                     val isFirstLaunch = conversionData[IS_FIRST_LAUNCH] as Boolean
                     if (isFirstLaunch) {
                     // deprected - need to check for replacement.
                     // api.setSharedEventState(getSaredEventState(conversionData), null, null)
-
                         if (af_application != null &&
                             AppsFlyerLib.getInstance()
                                 .getAppsFlyerUID(af_application!!.getApplicationContext()) != null) {
@@ -452,38 +346,30 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
                                 .getAppsFlyerUID(af_application!!.getApplicationContext()) !!
                         }
                         // Send AppsFlyer Attribution data to Adobe Analytics;
-                        if (ecid != null) {
-                            conversionData["ecid"] = ecid!!
+                        ecid?.let {
+                            conversionData["ecid"] = it
                         }
                         MobileCore.trackAction(
                             APPSFLYER_ATTRIBUTION_DATA,
                             setKeyPrefix(conversionData)
                         )
                     } else {
-                        Log.d(AFEXTENSION, "Skipping attribution data reporting, not first launch")
+                        logAFExtension("Skipping attribution data reporting, not first launch")
                     }
                 }
                 afCallbackListener?.onConversionDataSuccess(convertConversionData(
                     conversionData.toMap()
                 ))
-//                afCallbackListener?.onCallbackReceived(
-//                    convertConversionData(
-//                        conversionData.toMap()
-//                    )
-//                )
                 gcd = conversionData
             }
 
             override fun onConversionDataFail(errorMessage: String) {
-                afLogger("called onConversionDataFail")
+                logAFExtension("called onConversionDataFail")
                 afCallbackListener?.onConversionDataFail(errorMessage)
-//                afCallbackListener?.onCallbackError(
-//                    errorMessage
-//                )
             }
 
             override fun onAppOpenAttribution(deepLinkData: MutableMap<String, String>) {
-                afLogger("called onAppOpenAttribution")
+                logAFExtension("called onAppOpenAttribution")
                 deepLinkData[CALLBACK_TYPE] = "onAppOpenAttribution"
                 if (ecid != null) {
                     deepLinkData["ecid"] = ecid!!
@@ -492,17 +378,11 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
                     APPSFLYER_ENGAGMENT_DATA,
                     setKeyPrefixOnAppOpenAttribution(deepLinkData)
                 )
-//                afCallbackListener?.onCallbackReceived(
-//                    deepLinkData
-//                )
                 afCallbackListener?.onAppOpenAttribution(deepLinkData)
             }
 
             override fun onAttributionFailure(errorMessage: String) {
-                afLogger("called onAttributionFailure")
-//                afCallbackListener?.onCallbackError(
-//                    errorMessage
-//                )
+                logAFExtension("called onAttributionFailure")
                 afCallbackListener?.onAttributionFailure(errorMessage)
             }
         }
@@ -541,7 +421,7 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
 //    private fun getSaredEventState(conversionData: Map<String, Any?>): Map<String, Any?>? {
 //        // copy conversion data
 //        val sharedEventState: MutableMap<String, Any?> = HashMap(conversionData)
-//        sharedEventState[APPSFLYER_ID] = AppsFlyerLib.getInstance()
+//        sharedEventState[APPSFLYER_ID] = AppsFlyerLib.getInstance()F
 //            .getAppsFlyerUID(af_application)
 //        sharedEventState[SDK_VERSION] = AppsFlyerLib.getInstance().sdkVersion
 //        if (!conversionData.containsKey(MEDIA_SOURCE)) {
