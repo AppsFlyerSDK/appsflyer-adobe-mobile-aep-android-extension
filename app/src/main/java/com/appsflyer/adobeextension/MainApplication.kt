@@ -44,7 +44,7 @@ class MainApplication : Application() {
                 }
             })
 
-            AppsflyerAdobeExtension.registerDeepLinkListener(object :
+            AppsflyerAdobeExtension.subscribeForDeepLink(object :
                 DeepLinkListener {
                 override fun onDeepLinking(p0: DeepLinkResult) {
                     Log.d("AppsFlyerDeepLink", p0.toString())

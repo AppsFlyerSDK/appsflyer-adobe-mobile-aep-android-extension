@@ -8,14 +8,16 @@ import com.adobe.marketing.mobile.MobileCore
 
 class MainActivity : AppCompatActivity() {
 
-    private var button: Button? = null
+    private var mainButton: Button? = null
+    private var unregisterButton: Button? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
 
-        button = findViewById(R.id.mainButton)
+        mainButton = findViewById(R.id.mainButton)
+        unregisterButton = findViewById(R.id.unregisterButton)
 
         val evtMap: MutableMap<String, String> = HashMap()
         evtMap["currency"] = "ILS"
@@ -23,11 +25,15 @@ class MainActivity : AppCompatActivity() {
         evtMap["freehand"] = "param"
 
 
-        button!!.setOnClickListener(View.OnClickListener {
+        mainButton!!.setOnClickListener(View.OnClickListener {
             MobileCore.trackAction(
                 "testTrackAction",
                 evtMap
             )
+        })
+
+        unregisterButton!!.setOnClickListener(View.OnClickListener {
+            AppsflyerAdobeExtension.unregisterConversionListener()
         })
     }
 }
