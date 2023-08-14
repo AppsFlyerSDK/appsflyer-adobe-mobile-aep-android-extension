@@ -17,7 +17,9 @@ import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.DEV_KEY_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.EVENT_SETTING_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.IS_DEBUG_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.IS_FIRST_LAUNCH
+import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.MEDIA_SOURCE
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.PLUG_IN_VERSION
+import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.SDK_VERSION
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.TRACK_ATTR_DATA_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.WAIT_FOR_ECID
 import com.appsflyer.adobeextension.AppsflyerAdobeExtensionImpl.Companion.afCallbackDeepLinkListener
@@ -83,8 +85,7 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
                 if (trackAttributionData) {
                     val isFirstLaunch = conversionData[IS_FIRST_LAUNCH] as Boolean
                     if (isFirstLaunch) {
-                        // deprected - need to check for replacement.
-                        // api.setSharedEventState(getSaredEventState(conversionData), null, null)
+                        api.createSharedState(getSharedEventState(conversionData),null)
                         af_application?.let { context ->
                             AppsFlyerLib.getInstance().getAppsFlyerUID(context)?.let { appsflyerUID ->
                                 conversionData[APPSFLYER_ID] = appsflyerUID
@@ -388,19 +389,22 @@ public class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extensio
         }
     }
 
-//    private fun getSaredEventState(conversionData: Map<String, Any?>): Map<String, Any?>? {
-//        // copy conversion data
-//        val sharedEventState: MutableMap<String, Any?> = HashMap(conversionData)
-//        sharedEventState[APPSFLYER_ID] = AppsFlyerLib.getInstance()F
-//            .getAppsFlyerUID(af_application)
-//        sharedEventState[SDK_VERSION] = AppsFlyerLib.getInstance().sdkVersion
-//        if (!conversionData.containsKey(MEDIA_SOURCE)) {
-//            sharedEventState[MEDIA_SOURCE] = "organic"
-//        }
-//        sharedEventState.remove(IS_FIRST_LAUNCH)
-//        sharedEventState.remove(CALLBACK_TYPE)
-//        return sharedEventState
-//    }
+    private fun getSharedEventState(conversionData: Map<String, Any>): MutableMap<String, Any> {
+        // copy conversion data
+        var sharedEventState = conversionData.toMutableMap()
+        af_application?.let{
+            AppsFlyerLib.getInstance().getAppsFlyerUID(it)?.let{ res ->
+                sharedEventState[APPSFLYER_ID] = res
+            }
+        }
+        sharedEventState[SDK_VERSION] = AppsFlyerLib.getInstance().sdkVersion
+        if (!conversionData.containsKey(MEDIA_SOURCE)) {
+            sharedEventState[MEDIA_SOURCE] = "organic"
+        }
+        sharedEventState.remove(IS_FIRST_LAUNCH)
+        sharedEventState.remove(CALLBACK_TYPE)
+        return sharedEventState
+    }
 
     private fun convertConversionData(map: Map<String, Any>): Map<String, String?> {
         return map.entries.associate { it.key to it.value.toString() }
