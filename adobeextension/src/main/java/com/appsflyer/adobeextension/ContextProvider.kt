@@ -5,18 +5,17 @@ import android.app.Application
 import android.os.Bundle
 import android.util.Log
 import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.AFEXTENSION
+import java.lang.ref.WeakReference
 import kotlin.reflect.KFunction2
 
-class AcitivityLifeCycleWrapper(af_application: Application?, afActivitySetter: KFunction2<Activity, Bundle?, Unit>) : Application.ActivityLifecycleCallbacks {
-    private lateinit var af_activity_setter: KFunction2<Activity, Bundle?, Unit>
-
+class ContextProvider(val af_application: Application?) : Application.ActivityLifecycleCallbacks {
+    internal var af_activity: WeakReference<Activity>? = null
     init {
         af_application?.registerActivityLifecycleCallbacks(this) ?: Log.e(AFEXTENSION, "Null application context error - Use MobileCore.setApplication(this) in your app")
-        af_activity_setter = afActivitySetter
     }
 
     override fun onActivityCreated(activity: Activity, p1: Bundle?) {
-        af_activity_setter.invoke(activity,p1)
+        af_activity = WeakReference(activity)
     }
 
     override fun onActivityStarted(p0: Activity) {
