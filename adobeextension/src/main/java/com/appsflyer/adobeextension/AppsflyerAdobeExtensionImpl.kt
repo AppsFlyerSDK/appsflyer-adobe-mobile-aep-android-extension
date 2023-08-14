@@ -40,11 +40,7 @@ object AppsflyerAdobeExtension {
     val EXTENSION: Class<out Extension> = AppsflyerAdobeExtensionImpl::class.java
 
     fun registerConversionListener(callbacksListener: AppsFlyerConversionListener){
-        if (callbacksListener != null){
-            afCallbackListener = callbacksListener
-        } else {
-            Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
-        }
+        afCallbackListener = callbacksListener
     }
 
     fun unregisterConversionListener(){
@@ -52,12 +48,8 @@ object AppsflyerAdobeExtension {
     }
 
     fun subscribeForDeepLink(deepLinkListener: DeepLinkListener){
-        if (deepLinkListener != null){
-            afCallbackDeepLinkListener = deepLinkListener
-            subscribeForDeepLink()
-        } else {
-            Log.e(AFEXTENSION, "Cannot register callbacks listener with null object")
-        }
+        afCallbackDeepLinkListener = deepLinkListener
+        subscribeForDeepLink()
     }
 }
 
