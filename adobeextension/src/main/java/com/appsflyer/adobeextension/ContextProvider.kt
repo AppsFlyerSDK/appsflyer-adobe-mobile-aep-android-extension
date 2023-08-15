@@ -8,7 +8,7 @@ import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.AFEXTENSION
 import java.lang.ref.WeakReference
 import kotlin.reflect.KFunction2
 
-class ContextProvider(val af_application: Application?) : Application.ActivityLifecycleCallbacks {
+class ContextProvider(internal val af_application: Application?) : Application.ActivityLifecycleCallbacks {
     internal var af_activity: WeakReference<Activity>? = null
     init {
         af_application?.registerActivityLifecycleCallbacks(this) ?: Log.e(AFEXTENSION, "Null application context error - Use MobileCore.setApplication(this) in your app")

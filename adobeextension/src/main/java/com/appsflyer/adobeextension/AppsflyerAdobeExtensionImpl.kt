@@ -54,16 +54,7 @@ class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extension(exten
     private val contextProvider: ContextProvider
     private var trackAttributionData = false
     private val appsFlyerRequestListener by lazy {
-        object : AppsFlyerRequestListener {
-            override fun onSuccess() {
-                logAFExtension("Event sent successfully")
-            }
-            override fun onError(errorCode: Int, errorDesc: String) {
-                logErrorAFExtension("Event failed to be sent:\n" +
-                        "Error code: " + errorCode + "\n"
-                        + "Error description: " + errorDesc)
-            }
-        }
+        AppsFlyerAdobeExtensionRequestListener()
     }
     private val appsflyerAdobeExtensionConversionListener : AppsFlyerConversionListener
 
@@ -147,7 +138,6 @@ class AppsflyerAdobeExtensionImpl (extensionApi: ExtensionApi) : Extension(exten
             val value = optString(key)
             map[key] = value.toString()
         }
-
         return map
     }
 
