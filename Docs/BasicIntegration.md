@@ -4,16 +4,19 @@ Register the AppsFlyer extension from your `Application` class, alongside the Ad
 ```java
 @Override  
 public void onCreate() {  
-  super.onCreate();  
-  
-  MobileCore.setApplication(this);  
-  MobileCore.setLogLevel(LoggingMode.DEBUG);  
-  ...
-  try {
-  ...
-  AppsFlyerAdobeExtension.registerExtension();
-  ...
-  }
+    super.onCreate()
+    MobileCore.setApplication(this)
+    MobileCore.setLogLevel(LoggingMode.DEBUG)
+    try {
+        MobileCore.configureWithAppID("<ADOBE-APP-ID>")
+
+        val extensions = listOf(Analytics.EXTENSION, Identity.EXTENSION, AppsflyerAdobeExtension.EXTENSION )
+        MobileCore.registerExtensions(extensions) {
+            Log.d(AppsflyerAdobeConstants.AFEXTENSION, "AEP Mobile SDK is initialized")
+        }
+    } catch (ex: Exception) {
+        Log.d("AdobeException: ", ex.toString())
+    }   
 }
 ```
 
