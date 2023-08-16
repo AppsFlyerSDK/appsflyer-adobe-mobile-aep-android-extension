@@ -9,7 +9,7 @@ repositories {
 
 dependencies {
 ...
-implementation 'com.appsflyer:appsflyer-adobe-sdk-extension:6.+'
+implementation '<******>'
 implementation 'com.android.installreferrer:installreferrer:1.1'
 }
 ```
