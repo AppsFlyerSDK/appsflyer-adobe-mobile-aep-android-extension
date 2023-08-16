@@ -12,17 +12,17 @@ object AppsflyerAdobeExtension {
     internal var afCallbackDeepLinkListener: DeepLinkListener? = null
     internal val subscribeForDeepLinkObservers = mutableListOf<DeepLinkObserver>()
 
-    fun registerConversionListener(callbacksListener: AppsFlyerConversionListener){
+    fun registerConversionListener(callbacksListener: AppsFlyerConversionListener) {
         afCallbackListener = callbacksListener
     }
 
-    fun unregisterConversionListener(){
+    fun unregisterConversionListener() {
         afCallbackListener = null
     }
 
-    fun subscribeForDeepLink(deepLinkListener: DeepLinkListener){
+    fun subscribeForDeepLink(deepLinkListener: DeepLinkListener) {
         afCallbackDeepLinkListener = deepLinkListener
-        subscribeForDeepLinkObservers.forEach{
+        subscribeForDeepLinkObservers.forEach {
             it.invoke()
         }
     }

@@ -8,6 +8,7 @@ class AppsFlyerAdobeExtensionRequestListener : AppsFlyerRequestListener {
     override fun onSuccess() {
         logAFExtension("Event sent successfully")
     }
+
     override fun onError(errorCode: Int, errorDesc: String) {
         logErrorAFExtension(
             "Event failed to be sent:\n" +

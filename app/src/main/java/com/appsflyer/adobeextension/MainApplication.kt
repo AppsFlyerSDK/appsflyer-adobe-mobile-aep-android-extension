@@ -17,7 +17,7 @@ class MainApplication : Application() {
 
             val extensions = listOf(Analytics.EXTENSION, Identity.EXTENSION, AppsflyerAdobeExtension.EXTENSION )
             MobileCore.registerExtensions(extensions) {
-                Log.d(AppsflyerAdobeConstatns.AFEXTENSION, "AEP Mobile SDK is initialized")
+                Log.d(AppsflyerAdobeConstants.AFEXTENSION, "AEP Mobile SDK is initialized")
             }
 
             AppsflyerAdobeExtension.registerConversionListener(

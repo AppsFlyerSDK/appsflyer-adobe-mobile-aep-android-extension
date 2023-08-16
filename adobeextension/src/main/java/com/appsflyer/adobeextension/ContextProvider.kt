@@ -4,16 +4,19 @@ import android.app.Activity
 import android.app.Application
 import android.os.Bundle
 import android.util.Log
-import com.appsflyer.adobeextension.AppsflyerAdobeConstatns.AFEXTENSION
+import com.appsflyer.adobeextension.AppsflyerAdobeConstants.AFEXTENSION
 import java.lang.ref.WeakReference
 
 internal object ContextProvider : Application.ActivityLifecycleCallbacks {
     internal var afActivity: WeakReference<Activity>? = null
     internal var afApplication: Application? = null
 
-    internal fun register(app : Application?){
+    internal fun register(app: Application?) {
         afApplication = app
-        afApplication?.registerActivityLifecycleCallbacks(this) ?: Log.e(AFEXTENSION, "Null application context error - Use MobileCore.setApplication(this) in your app")
+        afApplication?.registerActivityLifecycleCallbacks(this) ?: Log.e(
+            AFEXTENSION,
+            "Null application context error - Use MobileCore.setApplication(this) in your app"
+        )
     }
 
     override fun onActivityCreated(activity: Activity, p1: Bundle?) {
