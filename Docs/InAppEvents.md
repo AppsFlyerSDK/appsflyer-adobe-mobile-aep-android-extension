@@ -20,7 +20,13 @@ In the Adobe Launch AppsFlyer Extension you can choose the in-app event setting 
 
 For example, If you have `All Events` selected , then calling this API:
 ```swift
-MobileCore.track(action: "testAnalyticsAction", data: ["revenue":"200","currency":"USD", "name":"AppsFlyer"])
+        import com.adobe.marketing.mobile.MobileCore
+        ...
+        val eventMap: MutableMap<String, String> = HashMap()
+        eventMap["currency"] = "ILS"
+        eventMap["revenue"] = "200"
+        eventMap["freehand"] = "param"
+        MobileCore.trackAction("testTrackAction", eventMap)
 ```
 will result in a testAnalyticsAction event tracked on the AppsFlyer Dashboard with a revenue of 200USD.
 
