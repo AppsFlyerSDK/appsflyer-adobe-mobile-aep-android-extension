@@ -22,7 +22,7 @@ public void onCreate() {
 
 In Addition to adding the init code, the settings inside the launch dashboard must be set.
 
-<img src="./gitresources/LaunchAFInitNew.png" width="550" >
+<img src="gitresources/LaunchAFInitNew.png" width="550" >
 
 | Setting  | Description   |
 | -------- | ------------- |
