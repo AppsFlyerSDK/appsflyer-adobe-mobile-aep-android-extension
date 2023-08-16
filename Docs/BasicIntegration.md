@@ -28,7 +28,7 @@ In Addition to adding the init code, the settings inside the launch dashboard mu
 | -------- | ------------- |
 | AppsFlyer iOS App ID      | Your iTunes [application ID](https://support.appsflyer.com/hc/en-us/articles/207377436-Adding-a-new-app#available-in-the-app-store-google-play-store-windows-phone-store)  (required for iOS only)  |
 | AppsFlyer Dev Key   | Your application [devKey](https://support.appsflyer.com/hc/en-us/articles/211719806-Global-app-settings-#sdk-dev-key) provided by AppsFlyer (required)  |
-| Bind in-app events for    | Bind adobe event to appsflyer in-app events. For more info see the doc [here](/docs/InAppsEvents.md). |
+| Bind in-app events for    | Bind adobe event to appsflyer in-app events. For more info see the doc [here](/Docs/InAppsEvents.md). |
 | Send attribution data    | Send conversion data from the AppsFlyer SDK to adobe. This is required for data elements. |
 | Debug Mode    | Debug mode - set to `true` for testing only.  |
 | Wait for ECID   | Once enabled, the SDK Initialization will be delayed until the Experience Cloud ID is set.  |
