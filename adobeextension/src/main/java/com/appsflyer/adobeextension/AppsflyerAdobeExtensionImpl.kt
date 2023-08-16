@@ -10,7 +10,6 @@ import com.appsflyer.adobeextension.AppsflyerAdobeConstants.APPSFLYER_ENGAGMENT_
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.DEV_KEY_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.EVENT_SETTING_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.IS_DEBUG_CONFIG
-import com.appsflyer.adobeextension.AppsflyerAdobeConstants.PLUG_IN_VERSION
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.TRACK_ATTR_DATA_CONFIG
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.WAIT_FOR_ECID
 import com.appsflyer.adobeextension.AppsflyerAdobeExtensionLogger.logAFExtension
