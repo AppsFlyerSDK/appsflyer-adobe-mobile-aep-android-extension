@@ -5,8 +5,6 @@ import com.adobe.marketing.mobile.MobileCore
 import com.appsflyer.AppsFlyerConversionListener
 import com.appsflyer.AppsFlyerLib
 import com.appsflyer.adobeextension.AppsflyerAdobeExtensionLogger.logAFExtension
-import com.appsflyer.adobeextension.MapHandlers.setKeyPrefixOnAppOpenAttribution
-import com.appsflyer.adobeextension.MapHandlers.setKeyPrefixToAppsflyerDot
 
 typealias TrackGetter = () -> Boolean
 typealias ECIDGetter = () -> String?
@@ -22,7 +20,7 @@ class AppsflyerAdobeExtensionConversionListener(
             val isFirstLaunch = conversionData[AppsflyerAdobeConstants.IS_FIRST_LAUNCH] as Boolean
             if (isFirstLaunch) {
                 extensionApi.createSharedState(getSharedEventState(conversionData), null)
-                ContextProvider.afApplication?.let { context ->
+                ContextProvider.context?.let { context ->
                     AppsFlyerLib.getInstance().getAppsFlyerUID(context)?.let { appsflyerUID ->
                         conversionData[AppsflyerAdobeConstants.APPSFLYER_ID] = appsflyerUID
                     }
@@ -67,7 +65,7 @@ class AppsflyerAdobeExtensionConversionListener(
     private fun getSharedEventState(conversionData: Map<String, Any>): Map<String, Any> {
         // copy conversion data
         val sharedEventState = conversionData.toMutableMap()
-        ContextProvider.afApplication?.let {
+        ContextProvider.context?.let {
             AppsFlyerLib.getInstance().getAppsFlyerUID(it)?.let { res ->
                 sharedEventState[AppsflyerAdobeConstants.APPSFLYER_ID] = res
             }

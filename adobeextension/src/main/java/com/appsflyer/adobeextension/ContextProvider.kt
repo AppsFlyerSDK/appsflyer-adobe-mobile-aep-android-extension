@@ -2,14 +2,17 @@ package com.appsflyer.adobeextension
 
 import android.app.Activity
 import android.app.Application
+import android.content.Context
 import android.os.Bundle
 import android.util.Log
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.AFEXTENSION
 import java.lang.ref.WeakReference
 
 internal object ContextProvider : Application.ActivityLifecycleCallbacks {
-    internal var afActivity: WeakReference<Activity>? = null
-    internal var afApplication: Application? = null
+    private var afActivity: WeakReference<Activity>? = null
+    private var afApplication: Application? = null
+    internal val context: Context?
+        get() = afActivity?.get() ?: afApplication
 
     internal fun register(app: Application?) {
         afApplication = app

@@ -1,5 +1,7 @@
 package com.appsflyer.adobeextension
 
+import android.app.Activity
+import android.app.Application
 import com.adobe.marketing.mobile.*
 import com.appsflyer.AppsFlyerConversionListener
 import com.appsflyer.AppsFlyerLib
@@ -13,8 +15,6 @@ import com.appsflyer.adobeextension.AppsflyerAdobeConstants.TRACK_ATTR_DATA_CONF
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.WAIT_FOR_ECID
 import com.appsflyer.adobeextension.AppsflyerAdobeExtensionLogger.logAFExtension
 import com.appsflyer.adobeextension.AppsflyerAdobeExtensionLogger.logErrorAFExtension
-import com.appsflyer.adobeextension.MapHandlers.setKeyPrefixOnAppOpenAttribution
-import com.appsflyer.adobeextension.MapHandlers.setRevenueAndCurrencyKeysNaming
 import com.appsflyer.deeplink.DeepLink
 import com.appsflyer.deeplink.DeepLinkResult
 import com.appsflyer.internal.platform_extension.Plugin
@@ -72,21 +72,18 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         if (sdkStarted) {
             return
         }
-        val (message, context) = if (ContextProvider.afActivity?.get() != null) {
-            Pair("start with Activity context", ContextProvider.afActivity!!.get()!!)
-        } else if (ContextProvider.afApplication != null) {
-            Pair("start with Application context", ContextProvider.afApplication!!)
-        } else {
-            Pair(
-                "Null application context error - Use MobileCore.setApplication(this) in your app",
-                null
-            )
+        with(ContextProvider.context) {
+            val msg = when (this) {
+                is Application -> "start with Activity context"
+                is Activity -> "start with Application context"
+                else -> "Null application context error - Use MobileCore.setApplication(this) in your app"
+            }
+            if (this != null) {
+                AppsFlyerLib.getInstance().start(this)
+                sdkStarted = true
+            }
+            logAFExtension(msg)
         }
-        if (context != null) {
-            AppsFlyerLib.getInstance().start(context)
-            sdkStarted = true
-        }
-        logAFExtension(message)
     }
 
     private fun receiveConfigurationRequest(e: Event) {
@@ -103,7 +100,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
             val actionEventName = eventData[ACTION] as String?
             val stateEventName = eventData[STATE] as String?
 
-            ContextProvider.afApplication?.let { app ->
+            ContextProvider.context?.let { context ->
                 var eventName = ""
                 if (trackActionEvent && actionEventName != null) {
                     if (actionEventName == APPSFLYER_ATTRIBUTION_DATA || actionEventName == APPSFLYER_ENGAGMENT_DATA) {
@@ -117,7 +114,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                 }
                 val eventMap = nestedData.setRevenueAndCurrencyKeysNaming()
                 AppsFlyerLib.getInstance()
-                    .logEvent(app, eventName, eventMap, appsFlyerRequestListener)
+                    .logEvent(context, eventName, eventMap, appsFlyerRequestListener)
             }
                 ?: logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
         }
@@ -172,10 +169,10 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         waitForECID: Boolean
     ) {
         background {
-            if (ContextProvider.afApplication != null && !didReceiveConfigurations) {
+            if (ContextProvider.context != null && !didReceiveConfigurations) {
                 val pluginInfo = PluginInfo(
                     Plugin.ADOBE_MOBILE,
-                    PLUG_IN_VERSION
+                    BuildConfig.VERSION_NAME
                 )
                 AppsFlyerLib.getInstance().apply {
                     setPluginInfo(pluginInfo)
@@ -183,7 +180,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                     init(
                         appsFlyerDevKey,
                         appsflyerAdobeExtensionConversionListener,
-                        ContextProvider.afApplication!!.applicationContext
+                        ContextProvider.context!!.applicationContext
                     )
                     if (waitForECID) {
                         logAFExtension("waiting for Experience Cloud Id")
@@ -194,8 +191,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                         ecid = it
                         val id = ecid.orEmpty()
                         if (waitForECID && sdkStarted) {
-                            val context =
-                                ContextProvider.afActivity?.get() ?: ContextProvider.afApplication!!
+                            val context = ContextProvider.context!!
                             setCustomerIdAndLogSession(id, context)
                         } else {
                             setCustomerUserId(id)
@@ -207,7 +203,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                     eventSetting = inAppEventSetting
                     didReceiveConfigurations = true
                 }
-            } else if (ContextProvider.afApplication == null) {
+            } else if (ContextProvider.context == null) {
                 logErrorAFExtension("Null application context error - Use MobileCore.setApplication(this) in your app")
             }
         }
