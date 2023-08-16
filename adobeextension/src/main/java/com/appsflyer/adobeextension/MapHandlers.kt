@@ -1,18 +1,15 @@
 package com.appsflyer.adobeextension
 
 import com.appsflyer.AFInAppEventParameterName
+import org.json.JSONObject
 
 
 internal fun Map<String, Any?>.setKeyPrefixToAppsflyerDot(): Map<String, String?> {
-    return this.toMutableMap().run {
-        remove(AppsflyerAdobeConstants.CALLBACK_TYPE)
-        entries.associate { "appsflyer.${it.key}" to it.value.toString() }
-    }
+    return entries.associate { "appsflyer.${it.key}" to it.value.toString() }
 }
 
 internal fun Map<String, String>?.setKeyPrefixOnAppOpenAttribution(): Map<String, String> {
     return this?.toMutableMap()?.run {
-        remove(AppsflyerAdobeConstants.CALLBACK_TYPE)
         entries.associate { "appsflyer.af_engagement_${it.key}" to it.value }
     } ?: mapOf()
 }
@@ -28,6 +25,17 @@ internal fun Map<String, Any>?.setRevenueAndCurrencyKeysNaming(): Map<String, An
         }
     } catch (ex: Exception) {
         AppsflyerAdobeExtensionLogger.logErrorAFExtension("Error casting contextdata: $ex")
+    }
+    return map
+}
+
+internal fun JSONObject.toMap(): Map<String, String> {
+    val map = mutableMapOf<String, String>()
+    val keys = this.keys()
+    while (keys.hasNext()) {
+        val key = keys.next()
+        val value = optString(key)
+        map[key] = value.toString()
     }
     return map
 }

@@ -214,7 +214,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
 
     private fun handleDeepLink(deepLinkResult: DeepLinkResult) {
         AppsflyerAdobeExtension.afCallbackDeepLinkListener?.onDeepLinking(deepLinkResult)
-        var deepLinkObj: DeepLink? = deepLinkResult.deepLink
+        val deepLinkObj: DeepLink? = deepLinkResult.deepLink
         try {
             logAFExtension("The DeepLink data is: $deepLinkObj")
             MobileCore.trackAction(
@@ -225,18 +225,6 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
             logErrorAFExtension("DeepLink data came back null")
             return
         }
-    }
-
-    // extension
-    private fun JSONObject.toMap(): Map<String, String> {
-        val map = mutableMapOf<String, String>()
-        val keys = this.keys()
-        while (keys.hasNext()) {
-            val key = keys.next()
-            val value = optString(key)
-            map[key] = value.toString()
-        }
-        return map
     }
 
     private fun background(r: Runnable) {

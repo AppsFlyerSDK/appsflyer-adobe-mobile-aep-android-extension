@@ -76,7 +76,6 @@ class AppsflyerAdobeExtensionConversionListener(
             sharedEventState[AppsflyerAdobeConstants.MEDIA_SOURCE] = "organic"
         }
         sharedEventState.remove(AppsflyerAdobeConstants.IS_FIRST_LAUNCH)
-        sharedEventState.remove(AppsflyerAdobeConstants.CALLBACK_TYPE)
         return sharedEventState
     }
 }
