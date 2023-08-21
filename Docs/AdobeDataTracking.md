@@ -46,7 +46,7 @@ When the `Send attribution data to Adobe Analytics` setting is enabled, then a A
 3. The appsflyer_id is added to the event
 4. "appsflyer." is appended to all values 
 5. The event is sent on first launch only
-6. The Event is sent after the `AppsFlyerLibDelegate.onConversionDataSuccess` method is called.
+6. The Event is sent after the `AppsFlyerConversionListener.onConversionDataSuccess` method is called.
 
 For example here is a sample `organic` "AppsFlyer Attribution Data" event:
 
