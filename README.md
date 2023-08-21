@@ -1,6 +1,6 @@
 <img src="gitresources/AF_Logo_primary_logo.png"  width="400" > 
 
-# AppsFlyer Adobe Mobile iOS Swift Extension (AEP SDK)
+# AppsFlyer Adobe Mobile Android Kotlin Extension (AEP SDK)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
 [![Version](https://img.shields.io/cocoapods/v/AppsFlyerAdobeAEPExtension.svg?style=flat)](http://cocoapods.org/pods/AppsFlyerAdobeAEPExtension)
