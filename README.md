@@ -29,4 +29,4 @@
 - [APIs](/Docs/AdvancedAPI.md)
 - [Testing the integration](/Docs/Testing.md)
 - [Track Data with Adobe](/Docs/AdobeDataTracking.md)
-- [Sample App](AdobeAEPSample)
+- [Sample App](app)
