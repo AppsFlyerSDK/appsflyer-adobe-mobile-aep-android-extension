@@ -28,6 +28,5 @@
 - [Deep Linking](/Docs/DeepLink.md)
 - [APIs](/Docs/AdvancedAPI.md)
 - [Testing the integration](/Docs/Testing.md)
-- [APIs](/Docs/API.md)
 - [Track Data with Adobe](/Docs/AdobeDataTracking.md)
 - [Sample App](AdobeAEPSample)
