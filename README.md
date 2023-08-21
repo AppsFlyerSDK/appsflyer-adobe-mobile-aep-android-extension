@@ -26,7 +26,7 @@
 - [Initializing the SDK](/Docs/BasicIntegration.md)
 - [In-app Events](/Docs/InAppEvents.md)
 - [Deep Linking](/Docs/DeepLink.md)
-- [Advanced APIs](/Docs/AdvancedAPI.md)
+- [APIs](/Docs/AdvancedAPI.md)
 - [Testing the integration](/Docs/Testing.md)
 - [APIs](/Docs/API.md)
 - [Track Data with Adobe](/Docs/AdobeDataTracking.md)
