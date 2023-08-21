@@ -1,17 +1,82 @@
-# 📑 Advanced APIs
+# API
 
-- [Uninstall](#uninstall)
-- [User invite](#userInvite)
-- [In-app purchase validation](#InAppPurchaseValidation)
-- [Collect IDFA with ATTrackingManager](#collect)
-## <a id="#uninstall"> Uninstall
-For Uninstall measurement, follow the native SDK documentation [here](https://dev.appsflyer.com/hc/docs/uninstall-measurement-ios).
+<img src="https://massets.appsflyer.com/wp-content/uploads/2018/06/20092440/static-ziv_1TP.png"  width="400" >
 
-## <a id="#userInvite"> User invite
-For User invite, follow the native SDK documentation [here](https://dev.appsflyer.com/hc/docs/user-invite-attribution-ios).
+- [registerConversionListener](#registerConversionListener)
+- [unregisterConversionListener](#unregisterConversionListener)
+- [subscribeForDeepLink](#subscribeForDeepLink)
 
-## <a id="InAppPurchaseValidation"> In-app purchase validation
-For In-App Purchase Receipt Validation, follow the native SDK documentation [here](https://dev.appsflyer.com/hc/docs/in-app-events-ios#validating-purchases).
 
-## <a id="#collect"> Collect IDFA with ATTrackingManager
-For enabling App Tracking Transparency (ATT) support, follow the native SDK documentation [here](https://dev.appsflyer.com/hc/docs/integrate-ios-sdk#enabling-app-tracking-transparency-att-support).
+---
+
+
+ ##### <a id="registerConversionListener"> **`void registerConversionListener(callbacksListener: AppsFlyerConversionListener)`**
+ 
+
+| parameter          | type                        | description  |
+| -----------        |-----------------------------|--------------|
+| `callbacksListener` | `AppsFlyerConversionListener` | AppsFlyer conversion interface|
+
+*Example:*
+
+```kotlin
+
+AppsflyerAdobeExtension.registerConversionListener(
+    object : AppsFlyerConversionListener {
+        override fun onConversionDataSuccess(p0: MutableMap<String, Any>?) {
+            Log.d("AppsFlyerCallbacks", p0.toString())
+        }
+
+        override fun onConversionDataFail(p0: String?) {
+            Log.d("AppsFlyerCallbacks", p0?: " error onConversionDataFail")
+        }
+
+        override fun onAppOpenAttribution(p0: MutableMap<String, String>?) {
+            Log.d("AppsFlyerCallbacks", p0.toString())
+        }
+
+        override fun onAttributionFailure(p0: String?) {
+            Log.d("AppsFlyerCallbacks", p0?:" error onAttributionFailure")
+        }
+    }
+)
+
+```
+
+---
+
+
+ ##### <a id="unregisterConversionListener"> **`void unregisterConversionListener()`**
+
+
+*Example:*
+
+```kotlin
+
+AppsflyerAdobeExtension.unregisterConversionListener()
+
+```
+
+
+---
+
+
+ ##### <a id="subscribeForDeepLink"> **`void subscribeForDeepLink(deepLinkListener: DeepLinkListener)`**
+
+ | parameter          | type                        | description  |
+| -----------        |-----------------------------|--------------|
+| `deepLinkListener` | `DeepLinkListener` | AppsFlyer Deeplink interface|
+
+
+*Example:*
+
+```kotlin
+
+AppsflyerAdobeExtension.subscribeForDeepLink(
+object : DeepLinkListener {
+    override fun onDeepLinking(p0: DeepLinkResult) {
+        Log.d("AppsFlyerDeepLink", p0.toString())
+    }
+})
+
+```
