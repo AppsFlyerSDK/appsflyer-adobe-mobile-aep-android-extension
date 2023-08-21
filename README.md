@@ -2,9 +2,6 @@
 
 # AppsFlyer Adobe Mobile Android Kotlin Extension (AEP SDK)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](/LICENSE.md)
-[![Version](https://img.shields.io/cocoapods/v/AppsFlyerAdobeAEPExtension.svg?style=flat)](http://cocoapods.org/pods/AppsFlyerAdobeAEPExtension)
-
 🛠 In order for us to provide optimal support, we would kindly ask you to submit any issues to support@appsflyer.com
 
 > *When submitting an issue please specify your AppsFlyer sign-up (account) email , your app ID , production steps, logs, code snippets and any additional relevant information.*
