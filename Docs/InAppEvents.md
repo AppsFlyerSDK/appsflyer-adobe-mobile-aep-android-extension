@@ -28,7 +28,7 @@ For example, If you have `All Events` selected , then calling this API:
         eventMap["freehand"] = "param"
         MobileCore.trackAction("testTrackAction", eventMap)
 ```
-will result in a testAnalyticsAction event tracked on the AppsFlyer Dashboard with a revenue of 200USD.
+will result in a testTrackAction event tracked on the AppsFlyer Dashboard with a revenue of 200USD.
 
 > revenue and currency parameters are mapped to `af_revenue` and `af_currency`.
 
