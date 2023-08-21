@@ -137,7 +137,7 @@ When a deeplink is opened, and the `Send attribution data to Adobe Analytics` se
 2. The event values are a copy of the attribution deeplink data
 3. The appsflyer_id is added to the event
 4. "appsflyer.af_engagement_" is appended to all values 
-6. The Event is sent after the `AppsFlyerLibDelegate.onAppOpenAttribution` or `DeepLinkDelegate.didResolveDeepLink` method is called.
+6. The Event is sent after the `AppsFlyerConversionListener.onAppOpenAttribution` method is called.
 
 For example here is a sample "AppsFlyer Engagement Data" event:
 
