@@ -28,6 +28,9 @@ AppsflyerAdobeExtension.subscribeForDeepLink(object :
 })
 ```
 
+Another option for implementing Deep Linking is by setting up a ConversionListener (see [here](AdvancedAPI.md) how).
+You can read [here](https://dev.appsflyer.com/hc/docs/dl_android_gcd_legacy) more about the difference between both implementations 
+
 
 ###  <a id="android-deeplink"> Android Deeplink Setup
     
