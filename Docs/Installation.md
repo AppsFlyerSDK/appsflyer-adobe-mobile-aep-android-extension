@@ -10,7 +10,7 @@ repositories {
 dependencies {
 ...
 implementation '<******>'
-implementation 'com.android.installreferrer:installreferrer:1.1'
+implementation 'com.android.installreferrer:installreferrer:2.1'
 }
 ```
 
