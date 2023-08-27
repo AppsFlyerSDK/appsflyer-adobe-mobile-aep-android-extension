@@ -1,6 +1,6 @@
 <img src="gitresources/AF_Logo_primary_logo.png"  width="400" > 
 
-# AppsFlyer Adobe Mobile Android Kotlin Extension (AEP SDK)
+# AppsFlyer Adobe Mobile Android AEP
 
 🛠 In order for us to provide optimal support, we would kindly ask you to submit any issues to support@appsflyer.com
 
