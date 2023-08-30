@@ -2,6 +2,7 @@ image: ${AF_CI_IMAGE}
 
 stages:
   - build
+  - dummy
   - deploy
 #  - prepare
 #  - release
@@ -98,7 +99,12 @@ build:
     paths:
       - adobeextension/build/outputs/
 
-
+dummy:
+  stage: dummy
+  script:
+    - echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+    - echo "$CI_MERGE_REQUEST_TARGET_BRANCH_NAME"
+    - echo "$CI_MERGE_REQUEST_APPROVED"
 
 # deploy RC to maven central. This job will close the staging repository and we need to click the release button manually
 deploy_rc:
