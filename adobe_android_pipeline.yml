@@ -2,7 +2,7 @@ image: ${AF_CI_IMAGE}
 
 stages:
   - build
-#  - deploy
+  - deploy
 #  - prepare
 #  - release
 
@@ -100,32 +100,32 @@ build:
 
 
 
-## deploy RC to maven central. This job will close the staging repository and we need to click the release button manually
-#deploy_rc:
-#  stage: deploy
-#  variables:
-#    GRADLE_USER_HOME: '~/.gradle'
-#    KEYS_USER_HOME: '.keys'
-#    GIT_DEPTH: "0"
-#    RELEASE_TYPE: "QA"
-#    DEPLOY_TYPE: "QA"
-#    BRANCH_NAME: "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
-#  before_script:
-#    ## extract Release version from the release branch (e.g 1.2.0-rc2)
-#    - export RELEASE_VERSION=$(echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eo -m 1  "[0-9]+.[0-9]+.[0-9]+-rc[0-9]+")
-#    - export FIX_VERSION=$(echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eo -m 1  "[0-9]+.[0-9]+.[0-9]+")
-#    - export DEPENDENCY=$(echo "implementation \'com.appsflyer:appsflyer-adobe-sdk-extension-beta:$RELEASE_VERSION\'")
-#    - export JIRA_FIXED_VERSION=$(echo "Adobe Android SDK v$FIX_VERSION")
-#    - *set_gradle_properties
-#    - *fetchSdkDependency
-#    - *releaseNotesGenerator
-#  script:
-#    - ./gradlew clean publish
-#    - *sendSlackReport
-#  rules:
-#    ## when opening an MR from a release branch to master. Will not run when merging.
-#    - if: '($CI_MERGE_REQUEST_APPROVED != "true" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)/)'
-#
+# deploy RC to maven central. This job will close the staging repository and we need to click the release button manually
+deploy_rc:
+  stage: deploy
+  variables:
+    GRADLE_USER_HOME: '~/.gradle'
+    KEYS_USER_HOME: '.keys'
+    GIT_DEPTH: "0"
+    RELEASE_TYPE: "QA"
+    DEPLOY_TYPE: "QA"
+    BRANCH_NAME: "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+  before_script:
+    ## extract Release version from the release branch (e.g 1.2.0-rc2)
+    - export RELEASE_VERSION=$(echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eo -m 1  "[0-9]+.[0-9]+.[0-9]+-rc[0-9]+")
+    - export FIX_VERSION=$(echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eo -m 1  "[0-9]+.[0-9]+.[0-9]+")
+    - export DEPENDENCY=$(echo "implementation \'com.appsflyer:appsflyer-adobe-sdk-extension-beta:$RELEASE_VERSION\'")
+    - export JIRA_FIXED_VERSION=$(echo "Adobe Android SDK v$FIX_VERSION")
+    - *set_gradle_properties
+    - *fetchSdkDependency
+    - *releaseNotesGenerator
+  script:
+    - ./gradlew clean publish
+    - *sendSlackReport
+  rules:
+    ## when opening an MR from a release branch to master. Will not run when merging.
+    - if: '($CI_MERGE_REQUEST_APPROVED != "true" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)/)'
+
 #deploy_prod:
 #  stage: deploy
 #  variables:
