@@ -1,0 +1,192 @@
+image: ${AF_CI_IMAGE}
+
+stages:
+  - build
+#  - deploy
+#  - prepare
+#  - release
+
+variables:
+  GRADLE_USER_HOME: '~/.gradle'
+  KEYS_USER_HOME: '.keys'
+  GIT_DEPTH: "0"
+
+## Create and write global gradle properties file with all required variable for publishing
+.set_gradle_properties: &set_gradle_properties |
+  ## Create global `gradle.properties` file
+  mkdir -p $GRADLE_USER_HOME
+  ## write the signing key ID to the proerties file
+  echo "$ORG_GRADLE_PROJECT_SIGNING_KEY_ID" >> $GRADLE_USER_HOME/gradle.properties
+  ## write the signing key password to the proerties file
+  echo "$ORG_GRADLE_PROJECT_SIGNING_PASSWORD" >> $GRADLE_USER_HOME/gradle.properties
+  ## write the Build number to the proerties file. Build Number is the CI pipeline ID.
+  ## This ID is unique only within the current project.
+  echo "$PLUGIN_BUILD_NUMBER=$CI_PIPELINE_IID" >> $GRADLE_USER_HOME/gradle.properties
+  ## write the Sonatype user password to the proerties file.
+  echo $OSSRH_PASSWORD >> $GRADLE_USER_HOME/gradle.properties
+  ## write the Sonatype user name to the proerties file.
+  echo "$OSSRH_USER_NAME" >> $GRADLE_USER_HOME/gradle.properties
+  echo "$ORG_GRADLE_PROJECT_sonatypePassword" >> $GRADLE_USER_HOME/gradle.properties
+  echo "$ORG_GRADLE_PROJECT_sonatypeUsername" >> $GRADLE_USER_HOME/gradle.properties
+  ## write the Version Release Number to the proerties file.(e.g 1.2.3, 1.6.9-rc6)
+  echo "$PLUGIN_POM_VERSION=$RELEASE_VERSION" >> $GRADLE_USER_HOME/gradle.properties
+  ## write the release to the proerties file.(e.g for proper selecting pom name)
+  echo "$PLUGIN_RELEASE_TYPE=$RELEASE_TYPE" >> $GRADLE_USER_HOME/gradle.properties
+  ## Write pipeline flag
+  echo "$PLUGIN_RUNNING_IN_PIPELINE=true" >> $GRADLE_USER_HOME/gradle.properties
+  ## write the signing key in a onw line to the proerties file
+  cat $ORG_GRADLE_PROJECT_SIGNING_KEY | awk 'NR == 1 { print "ORG_GRADLE_PROJECT_signingKey=" } 1' ORS='\\n' >> $GRADLE_USER_HOME/gradle.properties
+  cat $GRADLE_USER_HOME/gradle.properties
+
+.sendSlackReport: &sendSlackReport |
+  # Build the JSON data for the slack report
+  JSON_DATA=$(cat <<EOF
+  {
+    "fix_version": "$FIX_VERSION",
+    "branch": "$BRANCH_NAME",
+    "dependency": "$DEPENDENCY",
+    "android_sdk": "$ANDROID_SDK",
+    "deploy_type": "$DEPLOY_TYPE",
+    "changes": "$RELEASE_NOTE",
+    "build_number": "$CI_PIPELINE_IID"
+  }
+  EOF
+  )
+  
+  echo "json data: $JSON_DATA"
+  curl --url "$SLACK_TOKEN" -H "Content-type: application/json" -X POST --data "$JSON_DATA" --trace-ascii /dev/stdout
+
+.releaseNotesGenerator: &releaseNotesGenerator | 
+  fixed_version_found=false
+  curl --url "https://appsflyer.atlassian.net/rest/api/3/project/11723/versions" -H "Authorization: Basic $JIRA_TOKEN" -X GET | jq -r '.[] | .name+""+.id' | while read version; do
+  if [[ "$version" == *"$JIRA_FIXED_VERSION"* ]] ;then
+      echo "$JIRA_FIXED_VERSION Found!"
+      fixed_version_found=true
+      version_id=${version#"$JIRA_FIXED_VERSION"}
+      echo $(curl -X GET "https://appsflyer.atlassian.net/rest/api/3/search?jql=fixVersion=$version_id" -H "Authorization: Basic $JIRA_TOKEN"  | jq -r '.issues[] | "- " + .fields["summary"]+"@"') > "$JIRA_FIXED_VERSION-releasenotes".txt
+      sed -i -r -e "s/@ /\n/gi" "$JIRA_FIXED_VERSION-releasenotes".txt
+      sed -i -r -e "s/@/\n/gi" "$JIRA_FIXED_VERSION-releasenotes".txt
+      cat "$JIRA_FIXED_VERSION-releasenotes".txt
+  fi
+  done
+  if [ fixed_version_found == false ];then
+  echo "$JIRA_FIXED_VERSION is not found!"
+  exit 1
+  fi
+  export RELEASE_NOTE=$(cat "$JIRA_FIXED_VERSION-releasenotes".txt)
+
+
+.fetchSdkDependency: &fetchSdkDependency | 
+  export ANDROID_SDK=$(grep -E 'AF_SDK_VERSION=([0-9]+.[0-9]+.[0-9]+)' gradle.properties | grep -Eo '[0-9]+.[0-9]+.[0-9]+')
+
+before_script:
+  - export GRADLE_USER_HOME=$(pwd)/.gradle
+  - chmod +x ./gradlew
+
+cache:
+  key: ${CI_PROJECT_ID}
+  paths:
+    - .gradle/
+
+## Check if we can build aar file on every push or when opening an MR from a release branch into myster
+build:
+  stage: build
+
+  script:
+    - ./gradlew clean :adobeextension:assembleRelease
+  artifacts:
+    paths:
+      - adobeextension/build/outputs/
+
+
+
+## deploy RC to maven central. This job will close the staging repository and we need to click the release button manually
+#deploy_rc:
+#  stage: deploy
+#  variables:
+#    GRADLE_USER_HOME: '~/.gradle'
+#    KEYS_USER_HOME: '.keys'
+#    GIT_DEPTH: "0"
+#    RELEASE_TYPE: "QA"
+#    DEPLOY_TYPE: "QA"
+#    BRANCH_NAME: "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME"
+#  before_script:
+#    ## extract Release version from the release branch (e.g 1.2.0-rc2)
+#    - export RELEASE_VERSION=$(echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eo -m 1  "[0-9]+.[0-9]+.[0-9]+-rc[0-9]+")
+#    - export FIX_VERSION=$(echo "$CI_MERGE_REQUEST_SOURCE_BRANCH_NAME" | grep -Eo -m 1  "[0-9]+.[0-9]+.[0-9]+")
+#    - export DEPENDENCY=$(echo "implementation \'com.appsflyer:appsflyer-adobe-sdk-extension-beta:$RELEASE_VERSION\'")
+#    - export JIRA_FIXED_VERSION=$(echo "Adobe Android SDK v$FIX_VERSION")
+#    - *set_gradle_properties
+#    - *fetchSdkDependency
+#    - *releaseNotesGenerator
+#  script:
+#    - ./gradlew clean publish
+#    - *sendSlackReport
+#  rules:
+#    ## when opening an MR from a release branch to master. Will not run when merging.
+#    - if: '($CI_MERGE_REQUEST_APPROVED != "true" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)/)'
+#
+#deploy_prod:
+#  stage: deploy
+#  variables:
+#    GRADLE_USER_HOME: '~/.gradle'
+#    KEYS_USER_HOME: '.keys'
+#    GIT_DEPTH: "0"
+#    RELEASE_TYPE: "Prod"
+#    DEPLOY_TYPE: "Production"
+#  before_script:
+#    ## extract Release version from the release branch (e.g 1.2.0)
+#    - export BRANCH_NAME=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)")
+#    - echo "BRANCH_NAME=$BRANCH_NAME"
+#    - export RELEASE_VERSION=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
+#    - export FIX_VERSION=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
+#    - export DEPENDENCY=$(echo "implementation \'com.appsflyer:appsflyer-adobe-sdk-extension:$FIX_VERSION\'")
+#    - export JIRA_FIXED_VERSION=$(echo "Adobe Android SDK v$FIX_VERSION")
+#    - *set_gradle_properties
+#    - *fetchSdkDependency
+#    - *releaseNotesGenerator
+#  script:
+#    - ./gradlew clean publish
+#    - *sendSlackReport
+#  rules:
+#     ## when merging an MR from a release branch to master. Will run on the merged code.
+#   - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
+#
+
+#prepare_job:
+#  stage: prepare                                              # This stage must run before the release stage
+#  rules:
+#    - if: $CI_COMMIT_TAG
+#      when: never                                             # Do not run this job when a tag is created manually
+#    - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
+#  script:
+#    - export version=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
+#    - echo "RELEASE_VERSION=$version" >> variables.env  # Generate the RELEASE_VERSION environment variables and append to the variables.env file
+#  artifacts:
+#    reports:
+#      dotenv: variables.env
+#
+#release_job:
+#  stage: release
+#  image: registry.gitlab.com/gitlab-org/release-cli:latest
+#  needs:
+#    - job: prepare_job
+#      artifacts: true
+#  rules:
+#    - if: $CI_COMMIT_TAG
+#      when: never                                  # Do not run this job when a tag is created manually
+#    - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
+#
+#  script:
+#    - echo "running release_job for $RELEASE_VERSION"
+#  release:
+#    tag_name: 'v$RELEASE_VERSION'
+#    description: 'v$RELEASE_VERSION'
+#    name: '$RELEASE_VERSION'
+#    ref: 'master'
+
+workflow:
+  rules:
+    - if: $CI_MERGE_REQUEST_IID
+    - if: $CI_COMMIT_BRANCH
+
