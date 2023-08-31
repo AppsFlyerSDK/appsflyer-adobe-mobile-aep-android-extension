@@ -4,8 +4,8 @@ stages:
   - build
   - dummy
   - deploy
-#  - prepare
-#  - release
+  - prepare
+  - release
 
 
 variables:
@@ -136,64 +136,64 @@ deploy_rc:
     ## when opening an MR from a release branch to master. Will not run when merging.
     - if: '($CI_MERGE_REQUEST_APPROVED != "true" && $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)/)'
 
-#deploy_prod:
-#  stage: deploy
-#  variables:
-#    GRADLE_USER_HOME: '~/.gradle'
-#    KEYS_USER_HOME: '.keys'
-#    GIT_DEPTH: "0"
-#    RELEASE_TYPE: "Prod"
-#    DEPLOY_TYPE: "Production"
-#  before_script:
-#    ## extract Release version from the release branch (e.g 1.2.0)
-#    - export BRANCH_NAME=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)")
-#    - echo "BRANCH_NAME=$BRANCH_NAME"
-#    - export RELEASE_VERSION=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
-#    - export FIX_VERSION=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
-#    - export DEPENDENCY=$(echo "implementation \'com.appsflyer:appsflyer-adobe-sdk-extension:$FIX_VERSION\'")
-#    - export JIRA_FIXED_VERSION=$(echo "Adobe Android SDK v$FIX_VERSION")
-#    - *set_gradle_properties
-#    - *fetchSdkDependency
+deploy_prod:
+  stage: deploy
+  variables:
+    GRADLE_USER_HOME: '~/.gradle'
+    KEYS_USER_HOME: '.keys'
+    GIT_DEPTH: "0"
+    RELEASE_TYPE: "Prod"
+    DEPLOY_TYPE: "Production"
+  before_script:
+    ## extract Release version from the release branch (e.g 1.2.0)
+    - export BRANCH_NAME=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)")
+    - echo "BRANCH_NAME=$BRANCH_NAME"
+    - export RELEASE_VERSION=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
+    - export FIX_VERSION=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
+    - export DEPENDENCY=$(echo "implementation \'com.appsflyer:appsflyer-adobe-sdk-extension:$FIX_VERSION\'")
+    - export JIRA_FIXED_VERSION=$(echo "Adobe Android SDK v$FIX_VERSION")
+    - *set_gradle_properties
+    - *fetchSdkDependency
 #    - *releaseNotesGenerator
-#  script:
-#    - ./gradlew clean publish
-#    - *sendSlackReport
-#  rules:
-#     ## when merging an MR from a release branch to master. Will run on the merged code.
-#   - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
-#
+  script:
+    - ./gradlew clean publish
+    - *sendSlackReport
+  rules:
+     ## when merging an MR from a release branch to master. Will run on the merged code.
+   - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
 
-#prepare_job:
-#  stage: prepare                                              # This stage must run before the release stage
-#  rules:
-#    - if: $CI_COMMIT_TAG
-#      when: never                                             # Do not run this job when a tag is created manually
-#    - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
-#  script:
-#    - export version=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
-#    - echo "RELEASE_VERSION=$version" >> variables.env  # Generate the RELEASE_VERSION environment variables and append to the variables.env file
-#  artifacts:
-#    reports:
-#      dotenv: variables.env
-#
-#release_job:
-#  stage: release
-#  image: registry.gitlab.com/gitlab-org/release-cli:latest
-#  needs:
-#    - job: prepare_job
-#      artifacts: true
-#  rules:
-#    - if: $CI_COMMIT_TAG
-#      when: never                                  # Do not run this job when a tag is created manually
-#    - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
-#
-#  script:
-#    - echo "running release_job for $RELEASE_VERSION"
-#  release:
-#    tag_name: 'v$RELEASE_VERSION'
-#    description: 'v$RELEASE_VERSION'
-#    name: '$RELEASE_VERSION'
-#    ref: 'master'
+
+prepare_job:
+  stage: prepare                                              # This stage must run before the release stage
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never                                             # Do not run this job when a tag is created manually
+    - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
+  script:
+    - export version=$(echo "$CI_COMMIT_MESSAGE" | grep -Eo -m 1 "[0-9]+.[0-9]+.[0-9]+")
+    - echo "RELEASE_VERSION=$version" >> variables.env  # Generate the RELEASE_VERSION environment variables and append to the variables.env file
+  artifacts:
+    reports:
+      dotenv: variables.env
+
+release_job:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: prepare_job
+      artifacts: true
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: never                                  # Do not run this job when a tag is created manually
+    - if: '($CI_COMMIT_BRANCH == "master" && $CI_COMMIT_MESSAGE =~ /^Merge branch "Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)"/)'  # Run this job when commits aremerged to the default branch
+
+  script:
+    - echo "running release_job for $RELEASE_VERSION"
+  release:
+    tag_name: 'v$RELEASE_VERSION'
+    description: 'v$RELEASE_VERSION'
+    name: '$RELEASE_VERSION'
+    ref: 'master'
 
 workflow:
   rules:
