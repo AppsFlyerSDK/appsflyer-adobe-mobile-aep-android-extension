@@ -58,24 +58,24 @@ variables:
   echo "json data: $JSON_DATA"
   curl --url "$SLACK_TOKEN" -H "Content-type: application/json" -X POST --data "$JSON_DATA" --trace-ascii /dev/stdout
 
-.releaseNotesGenerator: &releaseNotesGenerator | 
-  fixed_version_found=false
-  curl --url "https://appsflyer.atlassian.net/rest/api/3/project/11723/versions" -H "Authorization: Basic $JIRA_TOKEN" -X GET | jq -r '.[] | .name+""+.id' | while read version; do
-  if [[ "$version" == *"$JIRA_FIXED_VERSION"* ]] ;then
-      echo "$JIRA_FIXED_VERSION Found!"
-      fixed_version_found=true
-      version_id=${version#"$JIRA_FIXED_VERSION"}
-      echo $(curl -X GET "https://appsflyer.atlassian.net/rest/api/3/search?jql=fixVersion=$version_id" -H "Authorization: Basic $JIRA_TOKEN"  | jq -r '.issues[] | "- " + .fields["summary"]+"@"') > "$JIRA_FIXED_VERSION-releasenotes".txt
-      sed -i -r -e "s/@ /\n/gi" "$JIRA_FIXED_VERSION-releasenotes".txt
-      sed -i -r -e "s/@/\n/gi" "$JIRA_FIXED_VERSION-releasenotes".txt
-      cat "$JIRA_FIXED_VERSION-releasenotes".txt
-  fi
-  done
-  if [ fixed_version_found == false ];then
-  echo "$JIRA_FIXED_VERSION is not found!"
-  exit 1
-  fi
-  export RELEASE_NOTE=$(cat "$JIRA_FIXED_VERSION-releasenotes".txt)
+#.releaseNotesGenerator: &releaseNotesGenerator |
+#  fixed_version_found=false
+#  curl --url "https://appsflyer.atlassian.net/rest/api/3/project/11723/versions" -H "Authorization: Basic $JIRA_TOKEN" -X GET | jq -r '.[] | .name+""+.id' | while read version; do
+#  if [[ "$version" == *"$JIRA_FIXED_VERSION"* ]] ;then
+#      echo "$JIRA_FIXED_VERSION Found!"
+#      fixed_version_found=true
+#      version_id=${version#"$JIRA_FIXED_VERSION"}
+#      echo $(curl -X GET "https://appsflyer.atlassian.net/rest/api/3/search?jql=fixVersion=$version_id" -H "Authorization: Basic $JIRA_TOKEN"  | jq -r '.issues[] | "- " + .fields["summary"]+"@"') > "$JIRA_FIXED_VERSION-releasenotes".txt
+#      sed -i -r -e "s/@ /\n/gi" "$JIRA_FIXED_VERSION-releasenotes".txt
+#      sed -i -r -e "s/@/\n/gi" "$JIRA_FIXED_VERSION-releasenotes".txt
+#      cat "$JIRA_FIXED_VERSION-releasenotes".txt
+#  fi
+#  done
+#  if [ fixed_version_found == false ];then
+#  echo "$JIRA_FIXED_VERSION is not found!"
+#  exit 1
+#  fi
+#  export RELEASE_NOTE=$(cat "$JIRA_FIXED_VERSION-releasenotes".txt)
 
 
 .fetchSdkDependency: &fetchSdkDependency | 
@@ -125,8 +125,12 @@ deploy_rc:
     - export JIRA_FIXED_VERSION=$(echo "Adobe Android SDK v$FIX_VERSION")
     - *set_gradle_properties
     - *fetchSdkDependency
-    - *releaseNotesGenerator
+#    - *releaseNotesGenerator
   script:
+    - echo $RELEASE_VERSION
+    - echo $FIX_VERSION
+    - echo $DEPENDENCY
+    - echo $JIRA_FIXED_VERSION
     - ./gradlew clean publish
     - *sendSlackReport
   rules:
