@@ -15,33 +15,32 @@ variables:
 
 ## Create and write global gradle properties file with all required variable for publishing
 .set_gradle_properties: &set_gradle_properties |
-  ## Create global `gradle.properties` file
+
   mkdir -p $GRADLE_USER_HOME
-  ## write the signing key ID to the proerties file
+
   echo "$ORG_GRADLE_PROJECT_SIGNING_KEY_ID" >> $GRADLE_USER_HOME/gradle.properties
-  ## write the signing key password to the proerties file
+
   echo "$ORG_GRADLE_PROJECT_SIGNING_PASSWORD" >> $GRADLE_USER_HOME/gradle.properties
-  ## write the Build number to the proerties file. Build Number is the CI pipeline ID.
-  ## This ID is unique only within the current project.
+
   echo "$PLUGIN_BUILD_NUMBER=$CI_PIPELINE_IID" >> $GRADLE_USER_HOME/gradle.properties
-  ## write the Sonatype user password to the proerties file.
+
   echo $OSSRH_PASSWORD >> $GRADLE_USER_HOME/gradle.properties
-  ## write the Sonatype user name to the proerties file.
+
   echo "$OSSRH_USER_NAME" >> $GRADLE_USER_HOME/gradle.properties
   echo "$ORG_GRADLE_PROJECT_sonatypePassword" >> $GRADLE_USER_HOME/gradle.properties
   echo "$ORG_GRADLE_PROJECT_sonatypeUsername" >> $GRADLE_USER_HOME/gradle.properties
-  ## write the Version Release Number to the proerties file.(e.g 1.2.3, 1.6.9-rc6)
+
   echo "$PLUGIN_POM_VERSION=$RELEASE_VERSION" >> $GRADLE_USER_HOME/gradle.properties
-  ## write the release to the proerties file.(e.g for proper selecting pom name)
+
   echo "$PLUGIN_RELEASE_TYPE=$RELEASE_TYPE" >> $GRADLE_USER_HOME/gradle.properties
-  ## Write pipeline flag
+
   echo "$PLUGIN_RUNNING_IN_PIPELINE=true" >> $GRADLE_USER_HOME/gradle.properties
-  ## write the signing key in a onw line to the proerties file
+
   cat $ORG_GRADLE_PROJECT_SIGNING_KEY | awk 'NR == 1 { print "ORG_GRADLE_PROJECT_signingKey=" } 1' ORS='\\n' >> $GRADLE_USER_HOME/gradle.properties
   cat $GRADLE_USER_HOME/gradle.properties
 
 .sendSlackReport: &sendSlackReport |
-  # Build the JSON data for the slack report
+
   JSON_DATA=$(cat <<EOF
   {
     "fix_version": "$FIX_VERSION",
