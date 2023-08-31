@@ -36,7 +36,7 @@ variables:
 
   echo "$PLUGIN_RUNNING_IN_PIPELINE=true" >> $GRADLE_USER_HOME/gradle.properties
 
-  cat $ORG_GRADLE_PROJECT_SIGNING_KEY | awk 'NR == 1 { print "ORG_GRADLE_PROJECT_signingKey=" } 1' ORS='\\n' >> $GRADLE_USER_HOME/gradle.properties
+  echo "$ORG_GRADLE_PROJECT_SIGNING_KEY" | awk 'NR == 1 { print "ORG_GRADLE_PROJECT_signingKey=" } 1' ORS='\\n' >> $GRADLE_USER_HOME/gradle.properties
   cat $GRADLE_USER_HOME/gradle.properties
 
 .sendSlackReport: &sendSlackReport |
