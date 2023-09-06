@@ -2,6 +2,7 @@ image: ${AF_CI_IMAGE}
 
 stages:
   - build
+  - unitTests
   - dummy
   - deploy
   - prepare
@@ -98,6 +99,15 @@ build:
   artifacts:
     paths:
       - adobeextension/build/outputs/
+
+unitTests:
+  stage: unitTests
+
+  script:
+    - ./gradlew test
+  artifacts:
+    paths:
+      - adobeextension/tests/outputs/
 
 dummy:
   stage: dummy
