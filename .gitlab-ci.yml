@@ -19,4 +19,7 @@ adobePipeline:
     - if: '$CI_PIPELINE_SOURCE == "push" || ($CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "master" && $CI_MERGE_REQUEST_SOURCE_BRANCH_NAME =~ /^Releases\/\d+.x.x\/\d+.\d+.x\/(\d+.\d+.\d+)-(rc\d+)/)'
   trigger:
     include:
-      - local: 'adobe_android_pipeline.yml'
+      - project: 'mobile/android-child-pipelines'
+        ref: 'master'
+        file: 'adobe_android_kotlin_pipeline.yml'
+
