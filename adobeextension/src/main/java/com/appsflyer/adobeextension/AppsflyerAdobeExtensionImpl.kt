@@ -200,6 +200,9 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                     appsflyerAdobeExtensionConversionListener,
                     ContextProvider.context!!.applicationContext
                 )
+                if (AppsflyerAdobeExtension.afCallbackDeepLinkListener != null){
+                    subscribeForDeepLink()
+                }
                 if (waitForECID) {
                     logAFExtension("waiting for Experience Cloud Id")
                     waitForCustomerUserId(true)
