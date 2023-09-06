@@ -107,7 +107,7 @@ unitTests:
     - ./gradlew test
   artifacts:
     paths:
-      - adobeextension/tests/outputs/
+      - adobeextension/build/test-results/testDebugUnitTest/TEST-*.xml
 
 dummy:
   stage: dummy
