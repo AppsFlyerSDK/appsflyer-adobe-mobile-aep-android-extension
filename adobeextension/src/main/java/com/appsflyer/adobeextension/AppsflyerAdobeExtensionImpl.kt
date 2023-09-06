@@ -2,6 +2,7 @@ package com.appsflyer.adobeextension
 
 import android.app.Activity
 import android.app.Application
+import androidx.annotation.VisibleForTesting
 import com.adobe.marketing.mobile.*
 import com.appsflyer.AppsFlyerConversionListener
 import com.appsflyer.AppsFlyerLib
@@ -18,7 +19,6 @@ import com.appsflyer.deeplink.DeepLink
 import com.appsflyer.deeplink.DeepLinkResult
 import com.appsflyer.internal.platform_extension.Plugin
 import com.appsflyer.internal.platform_extension.PluginInfo
-import org.json.JSONObject
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -53,7 +53,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         api.registerEventListener(
             EventType.GENERIC_TRACK,
             EventSource.REQUEST_CONTENT,
-            this::receiveConfigurationRequest
+            this::inAppEventsHandler
         )
         ContextProvider.register(MobileCore.getApplication())
         AppsflyerAdobeExtension.subscribeForDeepLinkObservers.add {
@@ -85,7 +85,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         }
     }
 
-    private fun receiveConfigurationRequest(e: Event) {
+    private fun inAppEventsHandler(e: Event) {
         val trackActionEvent =
             eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_ACTION_EVENTS
         val trackStateEvent = eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_STATE_EVENTS
@@ -119,7 +119,8 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         }
     }
 
-    private fun receiveConfigurationRequestWithSharedState(e: Event) {
+    @VisibleForTesting
+    internal fun receiveConfigurationRequestWithSharedState(e: Event) {
         val eventData: Map<String, Any> = e.eventData
         val stateOwner: String = eventData["stateowner"].toString()
         if (stateOwner == "com.adobe.module.configuration") {
@@ -168,43 +169,60 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         waitForECID: Boolean
     ) {
         background {
-            if (ContextProvider.context != null && !didReceiveConfigurations) {
-                val pluginInfo = PluginInfo(
-                    Plugin.ADOBE_MOBILE,
-                    BuildConfig.VERSION_NAME
+            handleConfigurationEventRunnable(
+                appsFlyerDevKey,
+                appsFlyerIsDebug,
+                trackAttrData,
+                inAppEventSetting,
+                waitForECID
+            )
+        }
+    }
+
+    @VisibleForTesting
+    internal fun handleConfigurationEventRunnable(
+        appsFlyerDevKey: String,
+        appsFlyerIsDebug: Boolean,
+        trackAttrData: Boolean,
+        inAppEventSetting: String,
+        waitForECID: Boolean
+    ) {
+        if (ContextProvider.context != null && !didReceiveConfigurations) {
+            val pluginInfo = PluginInfo(
+                Plugin.ADOBE_MOBILE,
+                BuildConfig.VERSION_NAME
+            )
+            AppsFlyerLib.getInstance().apply {
+                setPluginInfo(pluginInfo)
+                setDebugLog(appsFlyerIsDebug)
+                init(
+                    appsFlyerDevKey,
+                    appsflyerAdobeExtensionConversionListener,
+                    ContextProvider.context!!.applicationContext
                 )
-                AppsFlyerLib.getInstance().apply {
-                    setPluginInfo(pluginInfo)
-                    setDebugLog(appsFlyerIsDebug)
-                    init(
-                        appsFlyerDevKey,
-                        appsflyerAdobeExtensionConversionListener,
-                        ContextProvider.context!!.applicationContext
-                    )
-                    if (waitForECID) {
-                        logAFExtension("waiting for Experience Cloud Id")
-                        waitForCustomerUserId(true)
-                    }
-
-                    Identity.getExperienceCloudId(AdobeCallback {
-                        ecid = it
-                        val id = ecid.orEmpty()
-                        if (waitForECID && sdkStarted) {
-                            val context = ContextProvider.context!!
-                            setCustomerIdAndLogSession(id, context)
-                        } else {
-                            setCustomerUserId(id)
-                        }
-                    })
-                    startSDK()
-
-                    trackAttributionData = trackAttrData
-                    eventSetting = inAppEventSetting
-                    didReceiveConfigurations = true
+                if (waitForECID) {
+                    logAFExtension("waiting for Experience Cloud Id")
+                    waitForCustomerUserId(true)
                 }
-            } else if (ContextProvider.context == null) {
-                logErrorAFExtension("Null application context error - Use MobileCore.setApplication(this) in your app")
+
+                Identity.getExperienceCloudId(AdobeCallback {
+                    ecid = it
+                    val id = ecid.orEmpty()
+                    if (waitForECID && sdkStarted) {
+                        val context = ContextProvider.context!!
+                        setCustomerIdAndLogSession(id, context)
+                    } else {
+                        setCustomerUserId(id)
+                    }
+                })
+                startSDK()
+
+                trackAttributionData = trackAttrData
+                eventSetting = inAppEventSetting
+                didReceiveConfigurations = true
             }
+        } else if (ContextProvider.context == null) {
+            logErrorAFExtension("Null application context error - Use MobileCore.setApplication(this) in your app")
         }
     }
 
