@@ -49,9 +49,9 @@ android {
 
 dependencies {
     api "com.appsflyer:af-android-sdk:$AF_SDK_VERSION"
-    implementation 'com.adobe.marketing.mobile:core:2.4.0'
-    implementation 'com.adobe.marketing.mobile:identity:2.0.3'
-    implementation 'com.adobe.marketing.mobile:analytics:2.0.3'
+    compileOnly('com.adobe.marketing.mobile:core:2.+')
+    compileOnly('com.adobe.marketing.mobile:identity:2.+')
+    compileOnly('com.adobe.marketing.mobile:analytics:2.+')
     testImplementation "io.mockk:mockk:1.13.2"
     testImplementation 'androidx.test.ext:junit:1.1.5'
     testImplementation 'androidx.test:core:1.4.0'
