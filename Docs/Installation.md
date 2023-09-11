@@ -9,9 +9,9 @@ repositories {
 
 dependencies {
 ...
-implementation 'com.adobe.marketing.mobile:core:2.+'
+implementation 'com.adobe.marketing.mobile:core:2.4.0'
 implementation 'com.adobe.marketing.mobile:lifecycle:2.+'
-implementation 'com.adobe.marketing.mobile:identity:2.+'
+implementation 'com.adobe.marketing.mobile:identity:2.0.3'
 implementation 'com.adobe.marketing.mobile:signal:2.+'
 
 implementation 'com.appsflyer.appsflyer-adobe-aep-sdk-extension:6.+'

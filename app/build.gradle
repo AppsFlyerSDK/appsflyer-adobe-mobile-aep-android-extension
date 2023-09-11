@@ -33,9 +33,9 @@ android {
 
 dependencies {
     implementation project(':adobeextension')
-    implementation 'com.adobe.marketing.mobile:core:2.+'
-    implementation 'com.adobe.marketing.mobile:identity:2.+'
-    implementation 'com.adobe.marketing.mobile:analytics:2.+'
+    implementation 'com.adobe.marketing.mobile:core:2.4.0'
+    implementation 'com.adobe.marketing.mobile:identity:2.0.3'
+    implementation 'com.adobe.marketing.mobile:analytics:2.0.3'
 
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
