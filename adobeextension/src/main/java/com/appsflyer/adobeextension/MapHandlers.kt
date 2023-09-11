@@ -3,7 +3,6 @@ package com.appsflyer.adobeextension
 import com.appsflyer.AFInAppEventParameterName
 import org.json.JSONObject
 
-
 internal fun Map<String, Any?>.setKeyPrefixToAppsflyerDot(): Map<String, String?> {
     return entries.associate { "appsflyer.${it.key}" to it.value.toString() }
 }
