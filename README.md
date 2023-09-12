@@ -2,7 +2,7 @@
 
 # AppsFlyer Adobe Mobile Android AEP
 
-[![pipeline status](https://gitlab.appsflyer.com/mobile/appsflyer-adobe-mobile-aep-android-extension/badges/master/pipeline.svg)](https://gitlab.appsflyer.com/mobile/appsflyer-adobe-mobile-aep-android-extension/-/commits/master) [![Latest Release](https://gitlab.appsflyer.com/mobile/appsflyer-adobe-mobile-aep-android-extension/-/badges/release.svg)](https://gitlab.appsflyer.com/mobile/appsflyer-adobe-mobile-aep-android-extension/-/releases)
+[![Latest Release](https://img.shields.io/nexus/r/com.appsflyer/appsflyer-adobe-aep-sdk-extension.svg?server=https%3A%2F%2Foss.sonatype.org)](https://repo1.maven.org/maven2/com/appsflyer/appsflyer-adobe-aep-sdk-extension/)
 
 🛠 In order for us to provide optimal support, we would kindly ask you to submit any issues to support@appsflyer.com
 
