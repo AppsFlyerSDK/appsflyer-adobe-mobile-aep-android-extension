@@ -67,6 +67,10 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         return APP_ID
     }
 
+//    private fun manualModeStatus() : Boolean{
+//        return !AppsflyerAdobeExtension.manualMode || AppsflyerAdobeExtension.manualModeOverrider
+//    }
+
     private fun startSDK() {
         if (sdkStarted) {
             return
@@ -78,10 +82,13 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                 else -> "Null application context error - Use MobileCore.setApplication(this) in your app"
             }
             if (this != null) {
-                AppsFlyerLib.getInstance().start(this)
-                sdkStarted = true
+                if (!AppsflyerAdobeExtension.manualMode){
+                    AppsFlyerLib.getInstance().start(this)
+                    sdkStarted = true
+                    logAFExtension(msg)
+                }
             }
-            logAFExtension(msg)
+
         }
     }
 
