@@ -67,10 +67,6 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         return APP_ID
     }
 
-//    private fun manualModeStatus() : Boolean{
-//        return !AppsflyerAdobeExtension.manualMode || AppsflyerAdobeExtension.manualModeOverrider
-//    }
-
     private fun startSDK() {
         if (sdkStarted || AppsflyerAdobeExtension.manual) {
             return
