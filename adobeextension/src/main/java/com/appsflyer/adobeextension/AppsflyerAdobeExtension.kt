@@ -11,12 +11,7 @@ object AppsflyerAdobeExtension {
     internal var afCallbackListener: AppsFlyerConversionListener? = null
     internal var afCallbackDeepLinkListener: DeepLinkListener? = null
     internal val subscribeForDeepLinkObservers = mutableListOf<DeepLinkObserver>()
-    internal var manualMode = false
-//    internal var manualModeOverrider = false
-
-    fun setManualModeValue(b : Boolean) {
-        this.manualMode = b
-    }
+    var manual = false
 
     fun registerConversionListener(callbacksListener: AppsFlyerConversionListener) {
         afCallbackListener = callbacksListener
