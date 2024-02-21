@@ -25,9 +25,11 @@
 ##  📖 Guides
 - [Adding the SDK to your project](/Docs/Installation.md)
 - [Initializing the SDK](/Docs/BasicIntegration.md)
+- [Manual Mode](/Docs/ManualMode.md)
 - [In-app Events](/Docs/InAppEvents.md)
 - [Deep Linking](/Docs/DeepLink.md)
 - [APIs](/Docs/AdvancedAPI.md)
 - [Testing the integration](/Docs/Testing.md)
 - [Track Data with Adobe](/Docs/AdobeDataTracking.md)
+- [Send consent for DMA compliance](/Docs/SendConsentForDMACompliance.md)
 - [Sample App](app)
