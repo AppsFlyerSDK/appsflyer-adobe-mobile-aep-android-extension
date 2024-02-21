@@ -68,7 +68,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
     }
 
     private fun startSDK() {
-        if (sdkStarted) {
+        if (sdkStarted || AppsflyerAdobeExtension.manual) {
             return
         }
         with(ContextProvider.context) {
@@ -80,8 +80,9 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
             if (this != null) {
                 AppsFlyerLib.getInstance().start(this)
                 sdkStarted = true
+                logAFExtension(msg)
             }
-            logAFExtension(msg)
+
         }
     }
 
