@@ -22,3 +22,5 @@ implementation 'com.android.installreferrer:installreferrer:2.1'
 > The Appsflyer plugin is compatibe with Adobe versions > 2.x .  
 
 > Add the installreferrer library to improve attribution accuracy, protects from install fraud and more.
+ 
+Starting from **6.14.0** Huawei Referrer integration was updated. [Learn more](https://dev.appsflyer.com/hc/docs/install-android-sdk#huawei-install-referrer).
