@@ -124,7 +124,9 @@ afterEvaluate {
 
                 credentials(PasswordCredentials) {
                     username = getSonatypeRepositoryToken()
+                    println username
                     password = getSonatypeRepositoryTokenPassword()
+                    println password
                 }
             }
         }
