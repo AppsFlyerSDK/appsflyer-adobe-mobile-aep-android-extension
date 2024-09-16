@@ -7,23 +7,33 @@
     tools:context=".MainActivity">
 
     <Button
-        android:id="@+id/mainButton"
+        android:id="@+id/track_action"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="180dp"
-        android:text="Button"
+        android:text="Track Action"
+        app:layout_constraintBottom_toTopOf="@+id/send_edge_event"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <Button
-        android:id="@+id/unregisterButton"
+        android:id="@+id/send_edge_event"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Send Edge Event"
+        app:layout_constraintBottom_toTopOf="@+id/unregister_button"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/track_action" />
+
+    <Button
+        android:id="@+id/unregister_button"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Unregister Listener"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/mainButton" />
+        app:layout_constraintTop_toBottomOf="@+id/send_edge_event" />
+
 </androidx.constraintlayout.widget.ConstraintLayout>

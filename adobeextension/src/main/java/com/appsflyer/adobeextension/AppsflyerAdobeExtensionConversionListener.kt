@@ -33,6 +33,7 @@ class AppsflyerAdobeExtensionConversionListener(
                     AppsflyerAdobeConstants.APPSFLYER_ATTRIBUTION_DATA,
                     conversionData.setKeyPrefixToAppsflyerDot()
                 )
+
             } else {
                 logAFExtension("Skipping attribution data reporting, not first launch")
             }
@@ -54,6 +55,7 @@ class AppsflyerAdobeExtensionConversionListener(
             AppsflyerAdobeConstants.APPSFLYER_ENGAGMENT_DATA,
             deepLinkData.setKeyPrefixOnAppOpenAttribution()
         )
+
         AppsflyerAdobeExtension.afCallbackListener?.onAppOpenAttribution(deepLinkData)
     }
 
