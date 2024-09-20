@@ -9,15 +9,21 @@ import com.adobe.marketing.mobile.MobileCore
 import com.adobe.marketing.mobile.edge.consent.Consent
 import com.appsflyer.AppsFlyerConversionListener
 
+const val APP_ID = "APP_ID"
+const val ADOBE_EXCEPTION_TAG = "AdobeException"
+const val APPSFLYER_CALLBACK_TAG = "AppsFlyerCallback"
+const val APPSFLYER_DEEPLINK_TAG = "AppsFlyerDeepLink"
+
 class MainApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
+
         MobileCore.setApplication(this)
         MobileCore.setLogLevel(LoggingMode.DEBUG)
 
         try {
-            MobileCore.configureWithAppID("cc3f5fb64390/dc8e2c465f6b/launch-c0c30f37db8f-development")
+            MobileCore.configureWithAppID(APP_ID)
 
             registerAbodeExtensions()
 
@@ -26,7 +32,7 @@ class MainApplication : Application() {
             subscribeForAppsFlyerDeepLink()
 
         } catch (ex: Exception) {
-            Log.d("AdobeException: ", ex.toString())
+            Log.d(ADOBE_EXCEPTION_TAG, ex.toString())
         }
     }
 
@@ -48,19 +54,19 @@ class MainApplication : Application() {
         AppsflyerAdobeExtension.registerConversionListener(
             object : AppsFlyerConversionListener {
                 override fun onConversionDataSuccess(p0: MutableMap<String, Any>?) {
-                    Log.d("AppsFlyerCallbacks", p0.toString())
+                    Log.d(APPSFLYER_CALLBACK_TAG, p0.toString())
                 }
 
                 override fun onConversionDataFail(p0: String?) {
-                    Log.d("AppsFlyerCallbacks", p0 ?: " error onConversionDataFail")
+                    Log.d(APPSFLYER_CALLBACK_TAG, p0 ?: " error onConversionDataFail")
                 }
 
                 override fun onAppOpenAttribution(p0: MutableMap<String, String>?) {
-                    Log.d("AppsFlyerCallbacks", p0.toString())
+                    Log.d(APPSFLYER_CALLBACK_TAG, p0.toString())
                 }
 
                 override fun onAttributionFailure(p0: String?) {
-                    Log.d("AppsFlyerCallbacks", p0 ?: " error onAttributionFailure")
+                    Log.d(APPSFLYER_CALLBACK_TAG, p0 ?: " error onAttributionFailure")
                 }
             }
         )
@@ -68,7 +74,7 @@ class MainApplication : Application() {
 
     private fun subscribeForAppsFlyerDeepLink() {
         AppsflyerAdobeExtension.subscribeForDeepLink { deeplinkResult ->
-            Log.d("AppsFlyerDeepLink", deeplinkResult.toString())
+            Log.d(APPSFLYER_DEEPLINK_TAG, deeplinkResult.toString())
         }
     }
 }

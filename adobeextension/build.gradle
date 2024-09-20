@@ -49,7 +49,8 @@ android {
 
 dependencies {
     api "com.appsflyer:af-android-sdk:$AF_SDK_VERSION"
-    implementation platform('com.adobe.marketing.mobile:sdk-bom:3.+')
+    compileOnly platform('com.adobe.marketing.mobile:sdk-bom:3.+')
+
     compileOnly 'com.adobe.marketing.mobile:core'
     compileOnly 'com.adobe.marketing.mobile:identity'
     compileOnly 'com.adobe.marketing.mobile:analytics'

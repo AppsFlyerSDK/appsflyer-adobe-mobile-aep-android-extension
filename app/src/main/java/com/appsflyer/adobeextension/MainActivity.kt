@@ -1,7 +1,6 @@
 package com.appsflyer.adobeextension
 
 import android.os.Bundle
-import android.util.Log
 import android.widget.Button
 import com.adobe.marketing.mobile.Edge
 import com.adobe.marketing.mobile.MobileCore
@@ -27,8 +26,9 @@ class MainActivity : AppCompatActivity() {
         "sample" to "data"
     )
 
-    private val experienceEvent = ExperienceEvent.Builder()
-        .apply { setXdmSchema(xdmData) }.build()
+    private val experienceEvent = ExperienceEvent.Builder().apply {
+        setXdmSchema(xdmData)
+    }.build()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,14 +38,16 @@ class MainActivity : AppCompatActivity() {
         sendEdgeEvent = findViewById(R.id.send_edge_event)
         unregisterButton = findViewById(R.id.unregister_button)
 
+        handleButtonListeners()
+    }
+
+    private fun handleButtonListeners() {
         trackAction.setOnClickListener {
             MobileCore.trackAction(TEST_EVENT, evtMap)
         }
 
         sendEdgeEvent.setOnClickListener {
-            Edge.sendEvent(experienceEvent) {
-                Log.d("EdgeCallback", it.toString())
-            }
+            Edge.sendEvent(experienceEvent, null)
         }
 
         unregisterButton.setOnClickListener {
