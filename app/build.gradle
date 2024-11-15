@@ -33,14 +33,23 @@ android {
 
 dependencies {
     implementation project(':adobeextension')
-    implementation 'com.adobe.marketing.mobile:core:2.4.0'
-    implementation 'com.adobe.marketing.mobile:identity:2.0.3'
-    implementation 'com.adobe.marketing.mobile:analytics:2.0.3'
+    implementation platform('com.adobe.marketing.mobile:sdk-bom:3.+')
+
+    implementation 'com.adobe.marketing.mobile:core'
+    implementation 'com.adobe.marketing.mobile:identity'
+    implementation 'com.adobe.marketing.mobile:analytics'
+
+    implementation 'com.adobe.marketing.mobile:edge'
+    implementation 'com.adobe.marketing.mobile:edgeidentity'
+    implementation 'com.adobe.marketing.mobile:edgeconsent'
+
+    implementation 'com.google.android.gms:play-services-ads-identifier:18.1.0'
 
     implementation 'androidx.core:core-ktx:1.7.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.8.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+
     testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.5'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'

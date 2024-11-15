@@ -3,7 +3,15 @@ package com.appsflyer.adobeextension
 import android.app.Activity
 import android.app.Application
 import androidx.annotation.VisibleForTesting
-import com.adobe.marketing.mobile.*
+import com.adobe.marketing.mobile.Event
+import com.adobe.marketing.mobile.EventSource
+import com.adobe.marketing.mobile.EventType
+import com.adobe.marketing.mobile.Extension
+import com.adobe.marketing.mobile.ExtensionApi
+import com.adobe.marketing.mobile.Identity
+import com.adobe.marketing.mobile.MobileCore
+import com.adobe.marketing.mobile.SharedStateResolution
+import com.adobe.marketing.mobile.SharedStateResult
 import com.appsflyer.AppsFlyerConversionListener
 import com.appsflyer.AppsFlyerLib
 import com.appsflyer.adobeextension.AppsflyerAdobeConstants.APPSFLYER_ATTRIBUTION_DATA
@@ -22,29 +30,46 @@ import com.appsflyer.internal.platform_extension.PluginInfo
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
+private const val STATE = "state"
+private const val DATA = "data"
+private const val ACTION = "action"
+private const val TRACK_NO_EVENTS = "none"
+private const val TRACK_ALL_EVENTS = "all"
+private const val TRACK_STATE_EVENTS = "states"
+private const val TRACK_ACTION_EVENTS = "actions"
+private const val APP_ID = "com.appsflyer.adobeextension"
+
 class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extensionApi) {
-    private var sdkStarted = false
-    private val executor: ExecutorService by lazy { Executors.newSingleThreadExecutor() }
-    private var ecid: String? = null
-    private var trackAttributionData = false
-    private val appsFlyerRequestListener by lazy {
-        AppsFlyerAdobeExtensionRequestListener()
-    }
-    private val appsflyerAdobeExtensionConversionListener: AppsFlyerConversionListener
+
     private var eventSetting = ""
+    private var ecid: String? = null
+
+    private var sdkStarted = false
+    private var trackAttributionData = false
     private var didReceiveConfigurations = false
 
-    companion object {
-        private const val APP_ID = "com.appsflyer.adobeextension"
-        private const val TRACK_ALL_EVENTS = "all"
-        private const val TRACK_ACTION_EVENTS = "actions"
-        private const val TRACK_STATE_EVENTS = "states"
-        private const val TRACK_NO_EVENTS = "none"
-        private const val ACTION = "action"
-        private const val STATE = "state"
-    }
+    private val appsflyerAdobeExtensionConversionListener: AppsFlyerConversionListener
+
+    private val executor: ExecutorService by lazy { Executors.newSingleThreadExecutor() }
+    private val appsFlyerRequestListener by lazy { AppsFlyerAdobeExtensionRequestListener() }
 
     init {
+        ContextProvider.register(MobileCore.getApplication())
+
+        registerEventListeners()
+
+        AppsflyerAdobeExtension.subscribeForDeepLinkObservers.add {
+            subscribeForDeepLink()
+        }
+
+        appsflyerAdobeExtensionConversionListener = AppsflyerAdobeExtensionConversionListener(
+            api, { trackAttributionData }, { ecid }
+        )
+    }
+
+    public override fun getName() = APP_ID
+
+    private fun registerEventListeners() {
         api.registerEventListener(
             EventType.HUB,
             EventSource.SHARED_STATE,
@@ -55,16 +80,12 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
             EventSource.REQUEST_CONTENT,
             this::inAppEventsHandler
         )
-        ContextProvider.register(MobileCore.getApplication())
-        AppsflyerAdobeExtension.subscribeForDeepLinkObservers.add {
-            subscribeForDeepLink()
-        }
-        appsflyerAdobeExtensionConversionListener =
-            AppsflyerAdobeExtensionConversionListener(api, { trackAttributionData }, { ecid })
-    }
 
-    public override fun getName(): String {
-        return APP_ID
+        api.registerEventListener(
+            EventType.EDGE,
+            EventSource.REQUEST_CONTENT,
+            this::inAppEventsHandler
+        )
     }
 
     private fun startSDK() {
@@ -82,41 +103,70 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                 sdkStarted = true
                 logAFExtension(msg)
             }
-
         }
     }
 
     private fun inAppEventsHandler(e: Event) {
-        val trackActionEvent =
-            eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_ACTION_EVENTS
-        val trackStateEvent = eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_STATE_EVENTS
-
         if (eventSetting == TRACK_NO_EVENTS) {
             return
         }
-        if (e.type == EventType.GENERIC_TRACK && e.source == EventSource.REQUEST_CONTENT) {
-            val eventData: Map<String, Any> = e.eventData
-            val nestedData = eventData["contextdata"] as Map<String, Any>?
-            val actionEventName = eventData[ACTION] as String?
-            val stateEventName = eventData[STATE] as String?
 
-            ContextProvider.context?.let { context ->
-                var eventName = ""
-                if (trackActionEvent && actionEventName != null) {
-                    if (actionEventName == APPSFLYER_ATTRIBUTION_DATA || actionEventName == APPSFLYER_ENGAGMENT_DATA) {
-                        logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
-                        return
-                    }
-                    eventName = actionEventName
+        if (isAdobeAnalyticsEvent(e)) {
+            handleAdobeAnalyticsEvent(e)
+        } else if (isAdobeEdgeEvent(e)) {
+            handleAdobeEdgeEvent(e)
+        }
+    }
 
-                } else if (trackStateEvent && stateEventName != null) {
-                    eventName = stateEventName
-                }
-                val eventMap = nestedData.setRevenueAndCurrencyKeysNaming()
-                AppsFlyerLib.getInstance()
-                    .logEvent(context, eventName, eventMap, appsFlyerRequestListener)
+    private fun isAdobeEdgeEvent(e: Event) =
+        e.type == EventType.EDGE && e.source == EventSource.REQUEST_CONTENT
+
+    private fun isAdobeAnalyticsEvent(e: Event) =
+        e.type == EventType.GENERIC_TRACK && e.source == EventSource.REQUEST_CONTENT
+
+    private fun handleAdobeAnalyticsEvent(e: Event) {
+        val eventData: Map<String, Any> = e.eventData
+        val nestedData = eventData["contextdata"] as Map<String, Any>?
+        val actionEventName = eventData[ACTION] as String?
+        val stateEventName = eventData[STATE] as String?
+
+        if (actionEventName == APPSFLYER_ATTRIBUTION_DATA || actionEventName == APPSFLYER_ENGAGMENT_DATA) {
+            logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
+        } else if (ContextProvider.context != null) {
+            var eventName = ""
+            val trackActionEvent =
+                eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_ACTION_EVENTS
+            val trackStateEvent =
+                eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_STATE_EVENTS
+            if (trackActionEvent && actionEventName != null) {
+                eventName = actionEventName
+            } else if (trackStateEvent && stateEventName != null) {
+                eventName = stateEventName
             }
-                ?: logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
+            val eventMap = nestedData.setRevenueAndCurrencyKeysNaming()
+            AppsFlyerLib.getInstance().logEvent(
+                ContextProvider.context!!, eventName, eventMap, appsFlyerRequestListener
+            )
+        } else {
+            logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
+        }
+    }
+
+    private fun handleAdobeEdgeEvent(e: Event) {
+        val eventName = e.name
+        val eventData: Map<String, Any> = e.eventData
+        val eventDataMap: Map<String, Any>? = e.eventData[DATA] as Map<String, Any>?
+
+        if (eventDataMap != null && (eventDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ATTRIBUTION_DATA ||
+                    eventDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ENGAGMENT_DATA)
+        ) {
+            logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
+        } else if (ContextProvider.context != null) {
+            AppsFlyerLib.getInstance().logEvent(
+                ContextProvider.context!!, eventName, eventData, appsFlyerRequestListener
+            )
+        } else {
+            logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
         }
     }
 
@@ -192,7 +242,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
             val pluginInfo = PluginInfo(
                 Plugin.ADOBE_MOBILE,
                 BuildConfig.VERSION_NAME,
-                mapOf("Adobe version" to "2.x")
+                mapOf("Adobe version" to "3.x")
             )
             AppsFlyerLib.getInstance().apply {
                 setPluginInfo(pluginInfo)
@@ -202,15 +252,17 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                     appsflyerAdobeExtensionConversionListener,
                     ContextProvider.context!!.applicationContext
                 )
-                if (AppsflyerAdobeExtension.afCallbackDeepLinkListener != null){
+
+                if (AppsflyerAdobeExtension.afCallbackDeepLinkListener != null) {
                     subscribeForDeepLink()
                 }
+
                 if (waitForECID) {
                     logAFExtension("waiting for Experience Cloud Id")
                     waitForCustomerUserId(true)
                 }
 
-                Identity.getExperienceCloudId(AdobeCallback {
+                Identity.getExperienceCloudId {
                     ecid = it
                     val id = ecid.orEmpty()
                     if (waitForECID && sdkStarted) {
@@ -219,12 +271,13 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                     } else {
                         setCustomerUserId(id)
                     }
-                })
-                startSDK()
+                }
 
                 trackAttributionData = trackAttrData
                 eventSetting = inAppEventSetting
                 didReceiveConfigurations = true
+
+                startSDK()
             }
         } else if (ContextProvider.context == null) {
             logErrorAFExtension("Null application context error - Use MobileCore.setApplication(this) in your app")
