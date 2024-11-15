@@ -38,10 +38,10 @@ class MainActivity : AppCompatActivity() {
         sendEdgeEvent = findViewById(R.id.send_edge_event)
         unregisterButton = findViewById(R.id.unregister_button)
 
-        handleButtonListeners()
+        setButtonListeners()
     }
 
-    private fun handleButtonListeners() {
+    private fun setButtonListeners() {
         trackAction.setOnClickListener {
             MobileCore.trackAction(TEST_EVENT, evtMap)
         }
