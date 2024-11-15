@@ -53,6 +53,7 @@ class MainApplication : Application() {
     private fun registerAppsflyerConversionListener() {
         AppsflyerAdobeExtension.registerConversionListener(
             object : AppsFlyerConversionListener {
+
                 override fun onConversionDataSuccess(p0: MutableMap<String, Any>?) {
                     Log.d(APPSFLYER_CALLBACK_TAG, p0.toString())
                 }
