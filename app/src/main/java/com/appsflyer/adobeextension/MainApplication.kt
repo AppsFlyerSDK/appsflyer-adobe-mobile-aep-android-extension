@@ -13,6 +13,7 @@ class MainApplication : Application() {
         MobileCore.setApplication(this)
         MobileCore.setLogLevel(LoggingMode.DEBUG)
         try {
+            // test
             MobileCore.configureWithAppID("<ADOBE_APP_ID>")
 
             val extensions = listOf(Analytics.EXTENSION, Identity.EXTENSION, AppsflyerAdobeExtension.EXTENSION )
