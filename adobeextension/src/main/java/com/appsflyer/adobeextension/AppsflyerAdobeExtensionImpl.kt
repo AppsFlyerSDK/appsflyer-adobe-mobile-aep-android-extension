@@ -3,9 +3,11 @@ package com.appsflyer.adobeextension
 import android.app.Activity
 import android.app.Application
 import androidx.annotation.VisibleForTesting
+import com.adobe.marketing.mobile.Edge
 import com.adobe.marketing.mobile.Event
 import com.adobe.marketing.mobile.EventSource
 import com.adobe.marketing.mobile.EventType
+import com.adobe.marketing.mobile.ExperienceEvent
 import com.adobe.marketing.mobile.Extension
 import com.adobe.marketing.mobile.ExtensionApi
 import com.adobe.marketing.mobile.Identity
@@ -150,8 +152,10 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
 
         if (e.type == EventType.EDGE && e.source == EventSource.REQUEST_CONTENT) {
             val eventData: MutableMap<String, Any> = e.eventData.toMutableMap()
-            val xdmDataMap: MutableMap<String, Any>? = (eventData[XDM_KEY] as Map<String, Any>)?.toMutableMap()
-            val customDataMap: MutableMap<String, Any>? = (eventData[DATA] as Map<String, Any>)?.toMutableMap()
+            val xdmDataMap: MutableMap<String, Any>? =
+                (eventData[XDM_KEY] as Map<String, Any>)?.toMutableMap()
+            val customDataMap: MutableMap<String, Any>? =
+                (eventData[DATA] as Map<String, Any>)?.toMutableMap()
 
             if (xdmDataMap != null && (xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ATTRIBUTION_DATA
                         || xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ENGAGMENT_DATA)
@@ -308,6 +312,16 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
             MobileCore.trackAction(
                 APPSFLYER_ENGAGMENT_DATA,
                 deepLinkObj?.clickEvent?.toMap().setKeyPrefixOnAppOpenAttribution()
+            )
+
+            Edge.sendEvent(
+                ExperienceEvent.Builder().apply {
+                    setData(mapOf(ADOBE_ACTION_KEY to APPSFLYER_ENGAGMENT_DATA))
+                    setXdmSchema(
+                        deepLinkObj?.clickEvent?.toMap().setKeyPrefixOnAppOpenAttribution()
+                    )
+                }.build(),
+                null
             )
         } catch (e: Exception) {
             logErrorAFExtension("DeepLink data came back null")
