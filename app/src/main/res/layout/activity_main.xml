@@ -11,10 +11,20 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Track Action"
-        app:layout_constraintBottom_toTopOf="@+id/send_edge_event"
+        app:layout_constraintBottom_toTopOf="@+id/track_state"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
+
+    <Button
+        android:id="@+id/track_state"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Track State"
+        app:layout_constraintBottom_toTopOf="@+id/send_edge_event"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/track_action" />
 
     <Button
         android:id="@+id/send_edge_event"
@@ -24,7 +34,7 @@
         app:layout_constraintBottom_toTopOf="@+id/unregister_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/track_action" />
+        app:layout_constraintTop_toBottomOf="@+id/track_state" />
 
     <Button
         android:id="@+id/unregister_button"

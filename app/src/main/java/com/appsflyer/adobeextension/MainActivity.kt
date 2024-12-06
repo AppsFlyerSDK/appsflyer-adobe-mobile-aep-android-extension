@@ -7,10 +7,12 @@ import com.adobe.marketing.mobile.MobileCore
 import androidx.appcompat.app.AppCompatActivity
 import com.adobe.marketing.mobile.ExperienceEvent
 
-private const val TEST_EVENT = "testTrackAction"
+private const val TEST_STATE_EVENT = "testTrackState"
+private const val TEST_ACTION_EVENT = "testTrackAction"
 
 class MainActivity : AppCompatActivity() {
 
+    private lateinit var trackState: Button
     private lateinit var trackAction: Button
     private lateinit var sendEdgeEvent: Button
     private lateinit var unregisterButton: Button
@@ -21,12 +23,22 @@ class MainActivity : AppCompatActivity() {
         "freehand" to "param"
     )
 
+    private val data = mapOf(
+        "customKey1" to "customVal1",
+        "currency" to "ILS",
+        "revenue" to "200",
+    )
+
     private val xdmData = mapOf(
+        "eventName" to "Appsflyer Edge Event",
         "eventType" to "SampleXDMEvent",
-        "sample" to "data"
+        "eventKey1" to "eventVal1",
+        "currency" to "ILS",
+        "revenue" to "200",
     )
 
     private val experienceEvent = ExperienceEvent.Builder().apply {
+        setData(data)
         setXdmSchema(xdmData)
     }.build()
 
@@ -34,6 +46,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        trackState = findViewById(R.id.track_state)
         trackAction = findViewById(R.id.track_action)
         sendEdgeEvent = findViewById(R.id.send_edge_event)
         unregisterButton = findViewById(R.id.unregister_button)
@@ -42,8 +55,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setButtonListeners() {
+        trackState.setOnClickListener {
+            MobileCore.trackState(TEST_STATE_EVENT, evtMap)
+        }
+
         trackAction.setOnClickListener {
-            MobileCore.trackAction(TEST_EVENT, evtMap)
+            MobileCore.trackAction(TEST_ACTION_EVENT, evtMap)
         }
 
         sendEdgeEvent.setOnClickListener {

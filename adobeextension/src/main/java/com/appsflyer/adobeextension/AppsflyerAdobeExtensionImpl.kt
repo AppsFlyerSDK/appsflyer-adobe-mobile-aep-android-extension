@@ -32,6 +32,8 @@ import java.util.concurrent.Executors
 
 private const val STATE = "state"
 private const val DATA = "data"
+private const val XDM_KEY = "xdm"
+private const val EVENT_NAME_KEY = "eventName"
 private const val ACTION = "action"
 private const val TRACK_NO_EVENTS = "none"
 private const val TRACK_ALL_EVENTS = "all"
@@ -56,7 +58,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
     init {
         ContextProvider.register(MobileCore.getApplication())
 
-        registerEventListeners()
+        registerAdobeEventListeners()
 
         AppsflyerAdobeExtension.subscribeForDeepLinkObservers.add {
             subscribeForDeepLink()
@@ -69,22 +71,23 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
 
     public override fun getName() = APP_ID
 
-    private fun registerEventListeners() {
+    private fun registerAdobeEventListeners() {
         api.registerEventListener(
             EventType.HUB,
             EventSource.SHARED_STATE,
             this::receiveConfigurationRequestWithSharedState
         )
+
         api.registerEventListener(
             EventType.GENERIC_TRACK,
             EventSource.REQUEST_CONTENT,
-            this::inAppEventsHandler
+            this::sendAdobeAnalyticsEventToAppsflyer
         )
 
         api.registerEventListener(
             EventType.EDGE,
             EventSource.REQUEST_CONTENT,
-            this::inAppEventsHandler
+            this::sendAdobeEdgeEventToAppsFlyer
         )
     }
 
@@ -106,67 +109,76 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         }
     }
 
-    private fun inAppEventsHandler(e: Event) {
+    private fun sendAdobeAnalyticsEventToAppsflyer(e: Event) {
         if (eventSetting == TRACK_NO_EVENTS) {
             return
         }
 
-        if (isAdobeAnalyticsEvent(e)) {
-            handleAdobeAnalyticsEvent(e)
-        } else if (isAdobeEdgeEvent(e)) {
-            handleAdobeEdgeEvent(e)
-        }
-    }
+        if (e.type == EventType.GENERIC_TRACK && e.source == EventSource.REQUEST_CONTENT) {
+            val eventData: Map<String, Any> = e.eventData
+            val stateEventName = eventData[STATE] as String?
+            val actionEventName = eventData[ACTION] as String?
+            val nestedData = eventData["contextdata"] as Map<String, Any>?
 
-    private fun isAdobeEdgeEvent(e: Event) =
-        e.type == EventType.EDGE && e.source == EventSource.REQUEST_CONTENT
-
-    private fun isAdobeAnalyticsEvent(e: Event) =
-        e.type == EventType.GENERIC_TRACK && e.source == EventSource.REQUEST_CONTENT
-
-    private fun handleAdobeAnalyticsEvent(e: Event) {
-        val eventData: Map<String, Any> = e.eventData
-        val nestedData = eventData["contextdata"] as Map<String, Any>?
-        val actionEventName = eventData[ACTION] as String?
-        val stateEventName = eventData[STATE] as String?
-
-        if (actionEventName == APPSFLYER_ATTRIBUTION_DATA || actionEventName == APPSFLYER_ENGAGMENT_DATA) {
-            logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
-        } else if (ContextProvider.context != null) {
-            var eventName = ""
-            val trackActionEvent =
-                eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_ACTION_EVENTS
-            val trackStateEvent =
-                eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_STATE_EVENTS
-            if (trackActionEvent && actionEventName != null) {
-                eventName = actionEventName
-            } else if (trackStateEvent && stateEventName != null) {
-                eventName = stateEventName
+            if (actionEventName == APPSFLYER_ATTRIBUTION_DATA || actionEventName == APPSFLYER_ENGAGMENT_DATA) {
+                logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
+            } else if (ContextProvider.context != null) {
+                var eventName = ""
+                val trackActionEvent =
+                    eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_ACTION_EVENTS
+                val trackStateEvent =
+                    eventSetting == TRACK_ALL_EVENTS || eventSetting == TRACK_STATE_EVENTS
+                if (trackActionEvent && actionEventName != null) {
+                    eventName = actionEventName
+                } else if (trackStateEvent && stateEventName != null) {
+                    eventName = stateEventName
+                }
+                val eventMap = nestedData.setRevenueAndCurrencyKeysNaming()
+                AppsFlyerLib.getInstance().logEvent(
+                    ContextProvider.context!!, eventName, eventMap, appsFlyerRequestListener
+                )
+            } else {
+                logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
             }
-            val eventMap = nestedData.setRevenueAndCurrencyKeysNaming()
-            AppsFlyerLib.getInstance().logEvent(
-                ContextProvider.context!!, eventName, eventMap, appsFlyerRequestListener
-            )
-        } else {
-            logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
         }
     }
 
-    private fun handleAdobeEdgeEvent(e: Event) {
-        val eventName = e.name
-        val eventData: Map<String, Any> = e.eventData
-        val eventDataMap: Map<String, Any>? = e.eventData[DATA] as Map<String, Any>?
+    private fun sendAdobeEdgeEventToAppsFlyer(e: Event) {
+        if (eventSetting == TRACK_NO_EVENTS) {
+            return
+        }
 
-        if (eventDataMap != null && (eventDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ATTRIBUTION_DATA ||
-                    eventDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ENGAGMENT_DATA)
-        ) {
-            logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
-        } else if (ContextProvider.context != null) {
-            AppsFlyerLib.getInstance().logEvent(
-                ContextProvider.context!!, eventName, eventData, appsFlyerRequestListener
-            )
-        } else {
-            logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
+        if (e.type == EventType.EDGE && e.source == EventSource.REQUEST_CONTENT) {
+            val eventData: MutableMap<String, Any> = e.eventData.toMutableMap()
+            val xdmDataMap: MutableMap<String, Any>? = (eventData[XDM_KEY] as Map<String, Any>)?.toMutableMap()
+            val customDataMap: MutableMap<String, Any>? = (eventData[DATA] as Map<String, Any>)?.toMutableMap()
+
+            if (xdmDataMap != null && (xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ATTRIBUTION_DATA
+                        || xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ENGAGMENT_DATA)
+            ) {
+                logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
+            } else if (ContextProvider.context != null) {
+                var eventName = e.name
+                xdmDataMap?.let { map ->
+                    map[EVENT_NAME_KEY]?.let {
+                        eventName = it as String
+                        xdmDataMap.remove(EVENT_NAME_KEY)
+                    }
+                    map.replaceRevenueAndCurrencyKeys()
+                    eventData.put(XDM_KEY, map)
+                }
+
+                customDataMap?.let {
+                    it.replaceRevenueAndCurrencyKeys()
+                    eventData.put(DATA, it)
+                }
+
+                AppsFlyerLib.getInstance().logEvent(
+                    ContextProvider.context!!, eventName, eventData, appsFlyerRequestListener
+                )
+            } else {
+                logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
+            }
         }
     }
 
