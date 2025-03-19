@@ -153,9 +153,9 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         if (e.type == EventType.EDGE && e.source == EventSource.REQUEST_CONTENT) {
             val eventData: MutableMap<String, Any> = e.eventData.toMutableMap()
             val xdmDataMap: MutableMap<String, Any>? =
-                (eventData[XDM_KEY] as Map<String, Any>)?.toMutableMap()
+                (eventData[XDM_KEY] as? Map<String, Any>)?.toMutableMap()
             val customDataMap: MutableMap<String, Any>? =
-                (eventData[DATA] as Map<String, Any>)?.toMutableMap()
+                (eventData[DATA] as? Map<String, Any>)?.toMutableMap()
 
             if (xdmDataMap != null && (xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ATTRIBUTION_DATA
                         || xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ENGAGMENT_DATA)
