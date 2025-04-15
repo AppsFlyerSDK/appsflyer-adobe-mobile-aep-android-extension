@@ -9,7 +9,6 @@ repositories {
 
 dependencies {
 ...
-implementation project(':adobeextension')
 implementation platform('com.adobe.marketing.mobile:sdk-bom:3.+')
 
 implementation 'com.adobe.marketing.mobile:core'
