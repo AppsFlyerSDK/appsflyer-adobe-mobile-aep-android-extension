@@ -3,6 +3,9 @@ package com.appsflyer.adobeextension
 import com.appsflyer.AFInAppEventParameterName
 import org.json.JSONObject
 
+private const val REVENUE_KEY = "revenue"
+private const val CURRENCY_KEY = "currency"
+
 internal fun Map<String, Any?>.setKeyPrefixToAppsflyerDot(): Map<String, String?> {
     return entries.associate { "appsflyer.${it.key}" to it.value.toString() }
 }
@@ -16,16 +19,32 @@ internal fun Map<String, String>?.setKeyPrefixOnAppOpenAttribution(): Map<String
 internal fun Map<String, Any>?.setRevenueAndCurrencyKeysNaming(): Map<String, Any> {
     val map = this?.toMutableMap() ?: return mutableMapOf()
     try {
-        (map["revenue"] as String?)?.let {
+        (map[REVENUE_KEY] as String?)?.let {
             map.put(AFInAppEventParameterName.REVENUE, it)
         }
-        (map["currency"] as String?)?.let {
+        (map[CURRENCY_KEY] as String?)?.let {
             map.put(AFInAppEventParameterName.CURRENCY, it)
         }
     } catch (ex: Exception) {
         AppsflyerAdobeExtensionLogger.logErrorAFExtension("Error casting contextdata: $ex")
     }
     return map
+}
+
+internal fun MutableMap<String, Any>.replaceRevenueAndCurrencyKeys(): MutableMap<String, Any> {
+    try {
+        (this[REVENUE_KEY] as String?)?.let {
+            this[AFInAppEventParameterName.REVENUE] = it
+            this.remove(REVENUE_KEY)
+        }
+        (this[CURRENCY_KEY] as String?)?.let {
+            this[AFInAppEventParameterName.CURRENCY] = it
+            this.remove(CURRENCY_KEY)
+        }
+    } catch (ex: Exception) {
+        AppsflyerAdobeExtensionLogger.logErrorAFExtension("Error casting contextdata: $ex")
+    }
+    return this
 }
 
 internal fun JSONObject.toMap(): Map<String, String> {
