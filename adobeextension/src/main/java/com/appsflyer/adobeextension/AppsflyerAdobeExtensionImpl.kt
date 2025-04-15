@@ -307,13 +307,19 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
     private fun handleDeepLink(deepLinkResult: DeepLinkResult) {
         AppsflyerAdobeExtension.afCallbackDeepLinkListener?.onDeepLinking(deepLinkResult)
         val deepLinkObj: DeepLink? = deepLinkResult.deepLink
+        logAFExtension("The DeepLink data is: $deepLinkObj")
+
         try {
-            logAFExtension("The DeepLink data is: $deepLinkObj")
             MobileCore.trackAction(
                 APPSFLYER_ENGAGMENT_DATA,
                 deepLinkObj?.clickEvent?.toMap().setKeyPrefixOnAppOpenAttribution()
             )
+        } catch (e: Exception) {
+            logErrorAFExtension("DeepLink data came back null")
+            return
+        }
 
+        try {
             Edge.sendEvent(
                 ExperienceEvent.Builder().apply {
                     setData(mapOf(ADOBE_ACTION_KEY to APPSFLYER_ENGAGMENT_DATA))
@@ -324,8 +330,7 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
                 null
             )
         } catch (e: Exception) {
-            logErrorAFExtension("DeepLink data came back null")
-            return
+            logErrorAFExtension(e.message ?: "Exception while trying to send Edge event")
         }
     }
 
@@ -333,4 +338,3 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         executor.execute(r)
     }
 }
-
