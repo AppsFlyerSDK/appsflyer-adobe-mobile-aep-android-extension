@@ -138,7 +138,7 @@ class AppsflyerAdobeExtensionImplTests {
     fun testAppsflyerAdobeExtensionImpl_inAppEventsHandler_action_happyflow() {
         every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
         val inAppEventsHandlerMethod = AppsflyerAdobeExtensionImpl::class.java.getDeclaredMethod(
-            "inAppEventsHandler",
+            "sendAdobeAnalyticsEventToAppsflyer",
             Event::class.java
         )
         inAppEventsHandlerMethod.isAccessible = true
@@ -163,7 +163,7 @@ class AppsflyerAdobeExtensionImplTests {
     fun testAppsflyerAdobeExtensionImpl_inAppEventsHandler_withState_happyflow() {
         every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
         val inAppEventsHandlerMethod = AppsflyerAdobeExtensionImpl::class.java.getDeclaredMethod(
-            "inAppEventsHandler",
+            "sendAdobeAnalyticsEventToAppsflyer",
             Event::class.java
         )
         inAppEventsHandlerMethod.isAccessible = true
