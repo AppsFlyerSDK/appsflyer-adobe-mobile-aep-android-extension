@@ -8,12 +8,12 @@
 
 > *When submitting an issue please specify your AppsFlyer sign-up (account) email , your app ID , production steps, logs, code snippets and any additional relevant information.*
 
-## This plugin is built to extend Adobe AEP (version 2.x and above).<br> If you are using Adobe ACP(version 1.x) please use [this](https://github.com/AppsFlyerSDK/appsflyer-adobe-mobile-android-extension) repo.
+## This plugin is built to extend Adobe AEP (version 3.x and above).<br> If you are using Adobe ACP(version 1.x) please use [this](https://github.com/AppsFlyerSDK/appsflyer-adobe-mobile-android-extension) repo.
 
 
 ### <a id="plugin-build-for"> This plugin is built with Appsflyer SDK:
 
-- Android AppsFlyer SDK **6.15.0**
+- Android AppsFlyer SDK **6.16.2**
 
 <!---
 ## <a id="breaking-changes"> 	❗❗ Breaking changes when updating to ✏️v*.*.*✏️❗❗
