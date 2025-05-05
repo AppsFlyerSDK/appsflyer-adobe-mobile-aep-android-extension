@@ -15,7 +15,7 @@ implementation 'com.adobe.marketing.mobile:core'
 implementation 'com.adobe.marketing.mobile:identity'
 implementation 'com.adobe.marketing.mobile:analytics'
 
-implementation "com.appsflyer.appsflyer-adobe-aep-sdk-extension:6.+"
+implementation 'com.appsflyer:appsflyer-adobe-aep-sdk-extension:6.+'
 implementation 'com.android.installreferrer:installreferrer:2.1'
 
 // Only for Adobe Edge Network events support:   
