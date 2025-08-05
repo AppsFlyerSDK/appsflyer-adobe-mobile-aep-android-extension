@@ -33,6 +33,7 @@ android {
 
 dependencies {
     implementation project(':adobeextension')
+//    implementation 'com.appsflyer:appsflyer-adobe-aep-sdk-extension:6.+'
     implementation platform('com.adobe.marketing.mobile:sdk-bom:3.+')
 
     implementation 'com.adobe.marketing.mobile:core'
