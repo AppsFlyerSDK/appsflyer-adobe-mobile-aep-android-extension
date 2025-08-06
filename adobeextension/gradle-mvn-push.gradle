@@ -30,17 +30,17 @@ String getArtifactID(){
 }
 
 
-task androidJavadocs(type: Javadoc) {
-    exclude "**/*.orig" // exclude files created by source control
-    source = android.sourceSets.main.java.srcDirs
-    classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
-    failOnError false
-}
+// task androidJavadocs(type: Javadoc) {
+//     exclude "**/*.orig" // exclude files created by source control
+//     source = android.sourceSets.main.java.srcDirs
+//     classpath += project.files(android.getBootClasspath().join(File.pathSeparator))
+//     failOnError false
+// }
 
-task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
-    archiveClassifier.set("javadoc")
-    from androidJavadocs.destinationDir
-}
+// task androidJavadocsJar(type: Jar, dependsOn: androidJavadocs) {
+//     archiveClassifier.set("javadoc")
+//     from androidJavadocs.destinationDir
+// }
 
 task androidSourcesJar(type: Jar) {
     archiveClassifier.set("sources")
@@ -94,7 +94,7 @@ afterEvaluate {
                 // Two artifacts, the `aar` and the sources
                 // artifact("$buildDir/outputs/aar/${project.getName()}-release.aar")
                 artifact bundleReleaseAar
-                artifact androidJavadocsJar
+                // artifact androidJavadocsJar
 
                 // Self-explanatory metadata for the most part
                 pom {
@@ -111,20 +111,6 @@ afterEvaluate {
                             dependencyNode.appendNode('version', it.version)
                         }
                     }
-                }
-            }
-        }
-        repositories {
-            maven {
-                name = "sonatype"
-
-                // You only need this if you want to publish snapshots, otherwise just set the URL
-                // to the release repo directly
-                url = isReleaseBuild() ? getReleaseRepositoryUrl() : getSnapshotRepositoryUrl()
-
-                credentials(PasswordCredentials) {
-                    username = getSonatypeRepositoryToken()
-                    password = getSonatypeRepositoryTokenPassword()
                 }
             }
         }
