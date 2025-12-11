@@ -1,7 +1,7 @@
 package com.appsflyer.adobeextension
 
-import android.util.Log
 import android.app.Application
+import android.util.Log
 import com.adobe.marketing.mobile.Analytics
 import com.adobe.marketing.mobile.Edge
 import com.adobe.marketing.mobile.LoggingMode
