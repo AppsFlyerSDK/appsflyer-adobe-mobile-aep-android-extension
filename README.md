@@ -13,7 +13,7 @@
 
 ### <a id="plugin-build-for"> This plugin is built with Appsflyer SDK:
 
-- Android AppsFlyer SDK **6.17.1**
+- Android AppsFlyer SDK **6.17.5**
 
 <!---
 ## <a id="breaking-changes"> 	❗❗ Breaking changes when updating to ✏️v*.*.*✏️❗❗
