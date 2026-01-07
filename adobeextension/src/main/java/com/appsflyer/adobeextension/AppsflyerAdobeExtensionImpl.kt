@@ -43,9 +43,10 @@ private const val TRACK_STATE_EVENTS = "states"
 private const val TRACK_ACTION_EVENTS = "actions"
 private const val APP_ID = "com.appsflyer.adobeextension"
 
-class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extensionApi) {
+internal class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extensionApi) {
 
-    private var eventSetting = ""
+    @VisibleForTesting
+    internal var eventSetting = ""
     private var ecid: String? = null
 
     private var sdkStarted = false
@@ -145,45 +146,52 @@ class AppsflyerAdobeExtensionImpl(extensionApi: ExtensionApi) : Extension(extens
         }
     }
 
-    private fun sendAdobeEdgeEventToAppsFlyer(e: Event) {
+    @VisibleForTesting
+    internal fun sendAdobeEdgeEventToAppsFlyer(e: Event) {
         if (eventSetting == TRACK_NO_EVENTS) {
             return
         }
 
-        if (e.type == EventType.EDGE && e.source == EventSource.REQUEST_CONTENT) {
-            val eventData: MutableMap<String, Any> = e.eventData.toMutableMap()
-            val xdmDataMap: MutableMap<String, Any>? =
-                (eventData[XDM_KEY] as? Map<String, Any>)?.toMutableMap()
-            val customDataMap: MutableMap<String, Any>? =
-                (eventData[DATA] as? Map<String, Any>)?.toMutableMap()
-
-            if (xdmDataMap != null && (xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ATTRIBUTION_DATA
-                        || xdmDataMap[ADOBE_ACTION_KEY] == APPSFLYER_ENGAGMENT_DATA)
-            ) {
-                logAFExtension("Discarding event binding for AppsFlyer Attribution Data event")
-            } else if (ContextProvider.context != null) {
-                var eventName = e.name
-                xdmDataMap?.let { map ->
-                    map[EVENT_NAME_KEY]?.let {
-                        eventName = it as String
-                        xdmDataMap.remove(EVENT_NAME_KEY)
-                    }
-                    map.replaceRevenueAndCurrencyKeys()
-                    eventData.put(XDM_KEY, map)
-                }
-
-                customDataMap?.let {
-                    it.replaceRevenueAndCurrencyKeys()
-                    eventData.put(DATA, it)
-                }
-
-                AppsFlyerLib.getInstance().logEvent(
-                    ContextProvider.context!!, eventName, eventData, appsFlyerRequestListener
-                )
-            } else {
-                logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
-            }
+        if (e.type != EventType.EDGE || e.source != EventSource.REQUEST_CONTENT) {
+            return
         }
+
+        val eventData = e.eventData
+        val xdmDataMap = (eventData[XDM_KEY] as? Map<String, Any>)?.toMutableMap()
+        val customDataMap = (eventData[DATA] as? Map<String, Any>)?.toMutableMap()
+
+        if (isAppsFlyerInternalEvent(xdmDataMap)) {
+            logAFExtension("Discarding event binding for AppsFlyer Attribution/Engagement Data event")
+            return
+        }
+
+        val context = ContextProvider.context
+        if (context == null) {
+            logErrorAFExtension("Didn't send an inApp due to - Null application context error - Use MobileCore.setApplication(this) in your app")
+            return
+        }
+
+        var eventName = e.name
+        val flattenedEventData = mutableMapOf<String, Any>()
+
+        xdmDataMap?.let { map ->
+            (map[EVENT_NAME_KEY] as? String)?.let { eventName = it }
+            map.remove(EVENT_NAME_KEY)
+            map.replaceRevenueAndCurrencyKeys()
+            flattenedEventData.putAll(map)
+        }
+
+        customDataMap?.let {
+            it.replaceRevenueAndCurrencyKeys()
+            flattenedEventData.putAll(it)
+        }
+
+        AppsFlyerLib.getInstance().logEvent(context, eventName, flattenedEventData, appsFlyerRequestListener)
+    }
+
+    private fun isAppsFlyerInternalEvent(xdmDataMap: Map<String, Any>?): Boolean {
+        val action = xdmDataMap?.get(ADOBE_ACTION_KEY)
+        return action == APPSFLYER_ATTRIBUTION_DATA || action == APPSFLYER_ENGAGMENT_DATA
     }
 
     @VisibleForTesting
