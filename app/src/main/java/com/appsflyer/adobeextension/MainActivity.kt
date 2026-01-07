@@ -25,8 +25,7 @@ class MainActivity : AppCompatActivity() {
 
     private val data = mapOf(
         "customKey1" to "customVal1",
-        "currency" to "ILS",
-        "revenue" to "200",
+        "customKey2" to "customVal2",
     )
 
     private val xdmData = mapOf(
