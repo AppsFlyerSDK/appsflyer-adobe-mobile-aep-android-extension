@@ -4,6 +4,8 @@ import android.app.Application
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.adobe.marketing.mobile.*
 import com.appsflyer.AppsFlyerLib
+import com.appsflyer.adobeextension.AppsflyerAdobeConstants.APPSFLYER_ATTRIBUTION_DATA
+import com.appsflyer.adobeextension.AppsflyerAdobeConstants.APPSFLYER_ENGAGMENT_DATA
 import io.mockk.*
 import org.junit.Assert.*
 import org.junit.Before
@@ -222,6 +224,282 @@ class AppsflyerAdobeExtensionImplTests {
                 true,
                 eventSettingsConfig,
                 true
+            )
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withXdmData_flattensAndSends() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val eventName = "testEvent"
+        val xdmData = mapOf("key1" to "value1", "key2" to "value2")
+        val eventData = mapOf("xdm" to xdmData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 1) {
+            mockAppsFlyerLib.logEvent(
+                mockApplicationContext,
+                eventName,
+                match { it == xdmData },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withCustomData_flattensAndSends() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val eventName = "testEvent"
+        val customData = mapOf("customKey1" to "customValue1", "customKey2" to "customValue2")
+        val eventData = mapOf("data" to customData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 1) {
+            mockAppsFlyerLib.logEvent(
+                mockApplicationContext,
+                eventName,
+                match { it == customData },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withXdmAndCustomData_mergesAndFlattens() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val eventName = "testEvent"
+        val xdmData = mapOf("xdmKey1" to "xdmValue1", "xdmKey2" to "xdmValue2")
+        val customData = mapOf("customKey1" to "customValue1")
+        val eventData = mapOf("xdm" to xdmData, "data" to customData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 1) {
+            mockAppsFlyerLib.logEvent(
+                mockApplicationContext,
+                eventName,
+                match { 
+                    val merged = mutableMapOf<String, Any>()
+                    merged.putAll(xdmData)
+                    merged.putAll(customData)
+                    it == merged
+                },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withRevenueAndCurrency_mapsToAfRevenueAndAfCurrency() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val eventName = "testEvent"
+        val revenue = "100.50"
+        val currency = "USD"
+        val xdmData = mapOf("revenue" to revenue, "currency" to currency, "otherKey" to "otherValue")
+        val eventData = mapOf("xdm" to xdmData)
+        val event: Event = Event.Builder(eventName, EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 1) {
+            mockAppsFlyerLib.logEvent(
+                mockApplicationContext,
+                eventName,
+                match { 
+                    it.containsKey(com.appsflyer.AFInAppEventParameterName.REVENUE) &&
+                    it[com.appsflyer.AFInAppEventParameterName.REVENUE] == revenue &&
+                    it.containsKey(com.appsflyer.AFInAppEventParameterName.CURRENCY) &&
+                    it[com.appsflyer.AFInAppEventParameterName.CURRENCY] == currency &&
+                    it["otherKey"] == "otherValue" &&
+                    !it.containsKey("revenue") &&
+                    !it.containsKey("currency")
+                },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withEventNameInXdm_usesXdmEventName() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val defaultEventName = "defaultEvent"
+        val xdmEventName = "CONFIRMATION"
+        val xdmData = mapOf("eventName" to xdmEventName, "key1" to "value1")
+        val eventData = mapOf("xdm" to xdmData)
+        val event: Event = Event.Builder(defaultEventName, EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 1) {
+            mockAppsFlyerLib.logEvent(
+                mockApplicationContext,
+                xdmEventName,
+                match { !it.containsKey("eventName") && it["key1"] == "value1" },
+                any()
+            )
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withAppsFlyerAttributionData_discardsEvent() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val xdmData = mapOf("action" to APPSFLYER_ATTRIBUTION_DATA, "key1" to "value1")
+        val eventData = mapOf("xdm" to xdmData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 0) {
+            mockAppsFlyerLib.logEvent(any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withAppsFlyerEngagementData_discardsEvent() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val xdmData = mapOf("action" to APPSFLYER_ENGAGMENT_DATA, "key1" to "value1")
+        val eventData = mapOf("xdm" to xdmData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 0) {
+            mockAppsFlyerLib.logEvent(any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_whenTrackNoEvents_doesNotSend() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "none"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val xdmData = mapOf("key1" to "value1")
+        val eventData = mapOf("xdm" to xdmData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 0) {
+            mockAppsFlyerLib.logEvent(any(), any(), any(), any())
+        }
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_whenContextIsNull_doesNotSend() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        every { ContextProvider.context } returns null
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val xdmData = mapOf("key1" to "value1")
+        val eventData = mapOf("xdm" to xdmData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 0) {
+            mockAppsFlyerLib.logEvent(any(), any(), any(), any())
+        }
+        
+        // Restore context for other tests
+        every { ContextProvider.context } returns mockApplicationContext
+    }
+
+    @Test
+    fun testAppsflyerAdobeExtensionImpl_sendAdobeEdgeEventToAppsFlyer_withConfirmationEventAndRevenue_flattensCorrectly() {
+        every { mockAppsFlyerLib.logEvent(any(), any(), any(), any()) } just Runs
+        mockAppsflyerAdobeExtensionImpl.eventSetting = "all"
+        
+        val EDGE = "com.adobe.eventType.edge"
+        val REQUEST_CONTENT = "com.adobe.eventSource.requestContent"
+        val revenue = "200.00"
+        val currency = "USD"
+        val xdmData = mapOf(
+            "eventName" to "CONFIRMATION",
+            "revenue" to revenue,
+            "currency" to currency,
+            "orderId" to "12345"
+        )
+        val customData = mapOf("customParam" to "customValue")
+        val eventData = mapOf("xdm" to xdmData, "data" to customData)
+        val event: Event = Event.Builder("testEvent", EDGE, REQUEST_CONTENT)
+            .setEventData(eventData)
+            .build()
+
+        mockAppsflyerAdobeExtensionImpl.sendAdobeEdgeEventToAppsFlyer(event)
+        
+        verify(exactly = 1) {
+            mockAppsFlyerLib.logEvent(
+                mockApplicationContext,
+                "CONFIRMATION",
+                match { 
+                    it.containsKey(com.appsflyer.AFInAppEventParameterName.REVENUE) &&
+                    it[com.appsflyer.AFInAppEventParameterName.REVENUE] == revenue &&
+                    it.containsKey(com.appsflyer.AFInAppEventParameterName.CURRENCY) &&
+                    it[com.appsflyer.AFInAppEventParameterName.CURRENCY] == currency &&
+                    it["orderId"] == "12345" &&
+                    it["customParam"] == "customValue" &&
+                    !it.containsKey("eventName") &&
+                    !it.containsKey("xdm") &&
+                    !it.containsKey("data") &&
+                    !it.containsKey("revenue") &&
+                    !it.containsKey("currency")
+                },
+                any()
             )
         }
     }
